@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Send, AlertCircle, CheckCircle2, Info, Cpu, Eye } from 'lucide-react';
+import { Shield, Send, AlertCircle, CheckCircle2, Info, Cpu, Eye, Zap, Search } from 'lucide-react';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ReportPreview from '@/components/ReportPreview';
-import { ContractFile, AuditState } from '@/lib/types';
+import AuditContextForm, { DEFAULT_AUDIT_CONTEXT } from '@/components/AuditContextForm';
+import { ContractFile, AuditState, AuditContext } from '@/lib/types';
 import { SAMPLE_SECURITY_REPORT, SAMPLE_VULNERABILITY_REPORT } from '@/lib/sampleReports';
 
 interface Provider {
@@ -22,7 +23,9 @@ export default function Home() {
   const [protocolDescription, setProtocolDescription] = useState('');
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [auditContext, setAuditContext] = useState<AuditContext>(DEFAULT_AUDIT_CONTEXT);
   const [isDemo, setIsDemo] = useState(false);
+  const [auditDepth, setAuditDepth] = useState<'quick' | 'deep' | null>(null);
   const [auditState, setAuditState] = useState<AuditState>({
     isLoading: false,
     reports: null,
@@ -59,9 +62,10 @@ export default function Home() {
   const availableProviders = providers.filter(p => p.available);
   const canSubmit = contracts.length > 0 && selectedProvider;
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (depth: 'quick' | 'deep') => {
     if (!canSubmit) return;
 
+    setAuditDepth(depth);
     setAuditState({ isLoading: true, reports: null, error: null });
 
     try {
@@ -73,6 +77,8 @@ export default function Home() {
           tests,
           protocolDescription,
           provider: selectedProvider,
+          context: auditContext,
+          auditDepth: depth,
         }),
       });
 
@@ -105,6 +111,8 @@ export default function Home() {
     setProtocolDescription('');
     setAuditState({ isLoading: false, reports: null, error: null });
     setIsDemo(false);
+    setAuditDepth(null);
+    setAuditContext(DEFAULT_AUDIT_CONTEXT);
     // Reset to first available provider
     const firstAvailable = providers.find(p => p.available);
     if (firstAvailable) {
@@ -219,6 +227,12 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* Audit Context Configuration */}
+              <AuditContextForm
+                context={auditContext}
+                onChange={setAuditContext}
+              />
 
               {/* Contract Upload */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -365,26 +379,46 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* Submit Button */}
-                  <button
-                    onClick={handleSubmit}
-                    disabled={!canSubmit || auditState.isLoading}
-                    className={`
-                      w-full py-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all
-                      ${
-                        canSubmit && !auditState.isLoading
-                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl'
-                          : 'bg-gray-300 cursor-not-allowed'
-                      }
-                    `}
-                  >
-                    <Send className="w-5 h-5" />
-                    {auditState.isLoading ? 'Auditing...' : 'Start Security Audit'}
-                  </button>
-
-                  <p className="text-xs text-gray-500 text-center">
-                    Audit typically takes 30-60 seconds
-                  </p>
+                  {/* Submit Buttons - Quick & Deep */}
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleSubmit('quick')}
+                      disabled={!canSubmit || auditState.isLoading}
+                      className={`
+                        w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all
+                        ${
+                          canSubmit && !auditState.isLoading
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl'
+                            : 'bg-gray-300 cursor-not-allowed'
+                        }
+                      `}
+                    >
+                      <Zap className="w-5 h-5" />
+                      {auditState.isLoading && auditDepth === 'quick' ? 'Auditing...' : 'Quick Audit'}
+                    </button>
+                    <p className="text-xs text-gray-500 text-center">
+                      ⚡ ~1-2 minutes • Critical & High issues only
+                    </p>
+                    
+                    <button
+                      onClick={() => handleSubmit('deep')}
+                      disabled={!canSubmit || auditState.isLoading}
+                      className={`
+                        w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all
+                        ${
+                          canSubmit && !auditState.isLoading
+                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl'
+                            : 'bg-gray-300 cursor-not-allowed'
+                        }
+                      `}
+                    >
+                      <Search className="w-5 h-5" />
+                      {auditState.isLoading && auditDepth === 'deep' ? 'Deep Analyzing...' : 'Deep Audit'}
+                    </button>
+                    <p className="text-xs text-gray-500 text-center">
+                      🔍 ~3-5 minutes • Comprehensive analysis
+                    </p>
+                  </div>
                 </div>
               </div>
 

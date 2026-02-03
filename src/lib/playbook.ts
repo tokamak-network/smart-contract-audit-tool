@@ -1,5 +1,7 @@
 // The AI Security Audit Playbook - embedded for AI context
-// This is a condensed version optimized for API usage
+// Enhanced version with advanced detection patterns and network-specific checks
+
+import { AuditContext, NETWORK_INFO, TargetNetwork } from './types';
 
 export const AUDIT_PLAYBOOK = `
 # AI Security Audit Playbook - Smart Contract Security Audit Methodology
@@ -8,174 +10,525 @@ export const AUDIT_PLAYBOOK = `
 - Trail of Bits Testing Handbook (appsec.guide)
 - Slither Static Analysis patterns
 - Forge Testing methodology
+- Network-specific vulnerability database
 
 ## Audit Workflow
 
 ### Phase 1: Static Analysis Review
-Analyze the contracts for common vulnerability patterns:
-- Reentrancy vulnerabilities
-- Access control issues
-- Integer overflow/underflow
-- Unchecked external calls
+Analyze the contracts for vulnerability patterns:
+
+#### 1.1 Classic Vulnerabilities
+- Reentrancy (external calls before state updates)
+- Access control (missing modifiers, privilege escalation)
+- Integer issues (overflow in <0.8.0, casting issues)
+- Unchecked external calls (return values, call success)
 - Locked ether (payable without withdraw)
-- Front-running vulnerabilities
-- Timestamp dependence
-- Denial of Service vectors
+- Front-running (transaction ordering dependence)
+- Timestamp dependence (block.timestamp manipulation)
+- Denial of Service (gas limits, unbounded loops)
 
-### Phase 2: Manual Code Review
-Follow Trail of Bits Testing Handbook patterns:
+#### 1.2 Advanced Vulnerability Patterns
+- Flash loan attack vectors (price manipulation, collateral draining)
+- Oracle manipulation (TWAP bypasses, spot price attacks)
+- MEV extraction points (sandwich attacks, JIT liquidity)
+- Governance attacks (flash loan voting, proposal manipulation)
+- Cross-function reentrancy (shared state across functions)
+- Read-only reentrancy (view function attacks via callbacks)
+- Signature replay attacks (missing nonces, cross-chain replay)
+- ERC20 approval race conditions
+- Permit front-running
+- Donation attacks (share inflation in vaults)
+- First depositor attacks (vault share manipulation)
+- Precision loss in calculations (division before multiplication)
+- Rounding direction attacks (favor protocol vs user)
 
-#### 2.1 Access Control Review
-- Check for onlyOwner modifiers
-- Role-based access control (RBAC)
-- Multi-sig requirements
-- Time-locks on critical functions
-- Missing access controls on state-changing functions
-- Centralization risks
+#### 1.3 DeFi-Specific Patterns
+**Lending Protocols:**
+- Liquidation threshold manipulation
+- Bad debt accumulation
+- Interest rate manipulation
+- Collateral factor attacks
 
-#### 2.2 Reentrancy Analysis
-- Checks-Effects-Interactions (CEI) pattern
-- ReentrancyGuard modifiers
-- State updates before external calls
-- External calls before state changes
+**DEX/AMM:**
+- Price impact manipulation
+- Slippage tolerance exploits
+- Liquidity mining exploits
+- Impermanent loss attacks
+- Sandwich attack susceptibility
 
-#### 2.3 Asset Flow Analysis
-- Proper ETH/token accounting
-- Balance validation before transfers
-- Double-claim prevention
-- Locked ether (payable with no withdraw)
-- Integer overflow/underflow risks
+**Yield/Vaults:**
+- Share price manipulation
+- Harvest function exploits
+- Strategy migration risks
+- Emergency withdrawal issues
 
-#### 2.4 Input Validation
-- Address(0) checks
-- Amount bounds validation
-- Array length limits
-- Function parameter sanitization
-- Unbounded loops
+**Bridges:**
+- Message replay attacks
+- Finality assumption errors
+- Relayer manipulation
+- Double-spending across chains
+- Delayed finality exploits
 
-#### 2.5 Proxy Pattern Safety (if applicable)
-- Storage collision prevention
-- Proper initialization guards
-- Upgrade authorization controls
+#### 1.4 Upgrade Vulnerabilities
+**UUPS Pattern:**
+- Missing \_authorizeUpgrade checks
+- Selfdestruct in implementation
+- Storage collision between versions
+- Uninitialized implementation
 
-### Phase 3: Test Analysis
+**Transparent Proxy:**
+- Admin slot collision
+- Selector clashing
+- Missing proxy admin controls
+
+**Diamond Pattern:**
+- Facet selector conflicts
+- Storage pointer corruption
+- Missing cut access controls
+
+### Phase 2: Network-Specific Analysis
+Check for L2 and cross-chain issues:
+
+#### 2.1 EVM Compatibility
+- PUSH0 opcode usage (Solidity >=0.8.20, not supported on all L2s)
+- SELFDESTRUCT deprecation
+- PREVRANDAO vs DIFFICULTY
+- Block number meanings across chains
+
+#### 2.2 L2-Specific Issues
+**Sequencer Risks:**
+- Centralized sequencer trust assumptions
+- Sequencer downtime handling
+- Timestamp manipulation by sequencer
+- Transaction ordering control
+
+**OP Stack (Optimism, Base, Blast, Mode):**
+- L1 gas cost exposure in transactions
+- Cross-domain message validation
+- Deposit/withdrawal timing attacks
+- Sequencer uptime oracle usage
+
+**Arbitrum:**
+- ArbOS precompile usage
+- L1 block number vs L2 block number
+- Retryable tickets handling
+- Custom gas mechanics
+
+**zkSync:**
+- PUSH0 NOT supported
+- Different CREATE/CREATE2 behavior
+- Limited precompile support
+- Account abstraction interactions
+- Higher gas costs for certain opcodes
+
+**Polygon PoS:**
+- Reorg susceptibility
+- Checkpoint finality assumptions
+- Fast block times impact
+
+#### 2.3 Precompile Availability
+Check precompile usage against target network support:
+- ecrecover (0x01) - universal
+- sha256 (0x02) - universal
+- ripemd160 (0x03) - most networks
+- identity (0x04) - universal
+- modexp (0x05) - not on all L2s
+- ecAdd (0x06) - not on all L2s
+- ecMul (0x07) - not on all L2s
+- ecPairing (0x08) - limited support
+- blake2f (0x09) - limited support
+
+### Phase 3: Integration Analysis
+For external dependencies:
+
+#### 3.1 Oracle Integrations
+**Chainlink:**
+- Stale price checks (latestRoundData)
+- Sequencer uptime feed on L2
+- Price deviation tolerance
+- Heartbeat validation
+- Round completeness checks
+
+**Other Oracles (Pyth, RedStone, etc.):**
+- Update frequency assumptions
+- Price confidence intervals
+- Signature validation
+
+#### 3.2 DeFi Protocol Integrations
+**Uniswap:**
+- Slot0 vs TWAP for pricing
+- Flash swap callback validation
+- Minimum liquidity edge cases
+
+**Aave/Compound:**
+- Liquidation bonus exploitation
+- Interest rate model assumptions
+- Reserve factor changes
+
+#### 3.3 Cross-Chain Messaging
+**LayerZero:**
+- Endpoint trust assumptions
+- Message ordering guarantees
+- Payload validation
+
+**Chainlink CCIP:**
+- Router address validation
+- Supported chains verification
+- Fee estimation accuracy
+
+### Phase 4: False Positive Filtering
+Apply these filters to reduce false positives:
+
+#### 4.1 Intentional Patterns
+- Pull payments (intentional external call last)
+- Checks-Effects-Interactions followed correctly
+- Intentional centralization (documented admin controls)
+- Test/mock contracts (ignore)
+- Interface/abstract contracts (no implementation)
+
+#### 4.2 Solidity Version Considerations
+- Solidity >=0.8.0: Built-in overflow checks
+- SafeMath usage in >=0.8.0: Redundant, not a bug
+- Unchecked blocks: Intentional optimization
+
+#### 4.3 Confidence Scoring
+For each finding, assess:
+- **HIGH CONFIDENCE**: Clear vulnerability with exploit path
+- **MEDIUM CONFIDENCE**: Potential issue, context-dependent
+- **LOW CONFIDENCE**: Possible concern, needs verification
+
+Only report HIGH and MEDIUM confidence findings.
+
+#### 4.4 Exploit Path Requirement
+Every Critical/High finding MUST include:
+1. Preconditions needed
+2. Step-by-step attack sequence
+3. Economic viability (is profit > gas cost?)
+4. Realistic attacker capabilities
+
+### Phase 5: Test Analysis
 If tests are provided:
 - Analyze test coverage
 - Identify untested code paths
 - Check for edge cases
 - Verify invariants
+- Note missing negative tests
 
-### Phase 4: Findings Documentation
+### Phase 6: Findings Documentation
 For each vulnerability, document:
-1. Severity (Critical/High/Medium/Low/Info)
+1. Severity + Confidence (Critical/High/Medium/Low/Info)
 2. Location (Contract name, function, line numbers)
 3. Description (What's wrong)
-4. Impact (What could happen)
-5. Recommendation (How to fix)
-6. Code Snippet (Before/After)
+4. Exploit Path (How to attack - required for Critical/High)
+5. Impact (What could happen, quantified if possible)
+6. Recommendation (How to fix)
+7. Code Snippet (Before/After)
 
 ## Severity Classification
 
-### 🔴 CRITICAL
+### 🔴 CRITICAL (High Confidence Required)
 Complete loss of funds or control
-- Arbitrary code execution
-- Unauthorized fund withdrawal
+- Arbitrary fund withdrawal
 - Complete contract takeover
+- Cross-contract privilege escalation
+- Bridge/oracle manipulation for profit
 
-### 🟠 HIGH
+Must include: Realistic exploit path with economic analysis
+
+### 🟠 HIGH (High/Medium Confidence)
 Significant loss of funds or functionality
-- Locked ether with no recovery
-- Reentrancy allowing theft
-- Access control bypass
+- Partial fund theft possible
+- Reentrancy with clear exploit
+- Access control bypass on critical functions
 - Broken core functionality
+
+Must include: Clear attack vector description
 
 ### 🟡 MEDIUM
 Limited loss or degraded functionality
 - Missing access controls on non-critical functions
-- Gas optimization issues causing DOS
-- Weak randomness
-- Missing input validation
+- Gas optimization issues causing potential DOS
+- Weak randomness in non-critical contexts
+- Missing input validation with limited impact
 
 ### 🔵 LOW
 Minor issues, best practices
 - Missing event emissions
 - Unused variables
-- Outdated Solidity version
 - Non-standard naming
+- Gas optimizations
 
 ### ℹ️ INFORMATIONAL
-Code quality, gas optimization
+Code quality, suggestions
 - Code style inconsistencies
 - Redundant code
-- Better patterns available
+- Alternative patterns available
 - Documentation improvements
-
-## Output Requirements
-
-Generate exactly TWO markdown files:
-
-### File 1: SECURITY_AUDIT_REPORT.md
-Executive summary for stakeholders with:
-1. Executive Summary (risk matrix table)
-2. Contracts in Scope (table with lines and descriptions)
-3. Static Analysis Results summary
-4. Detailed Findings (each with location, description, risk, recommendation, status)
-5. Security Controls Verified (checkmark tables)
-6. Test Coverage Summary (if tests provided)
-7. Architecture Review (ASCII diagrams if applicable)
-8. Recommendations (prioritized by severity)
-9. Conclusion
-10. Appendix (tools/methodology used)
-
-### File 2: VULNERABILITY_ANALYSIS.md
-Technical documentation for developers with:
-1. Summary Table (severity, count, status)
-2. HIGH Severity Findings (with Before/After code)
-3. MEDIUM Severity Findings (with Before/After code)
-4. LOW Severity Findings
-5. Remediation Summary Table
-6. Verification Steps
-7. Approval Checklist
-
-## Report Format Rules
-- Use emoji severity indicators: 🔴🟠🟡🔵ℹ️
-- Include code snippets with \`\`\`solidity blocks
-- Use markdown tables for structured data
-- Include Before/After code for each fixable finding
-- Add ASCII architecture diagrams where helpful
-- Number findings as HIGH-1, HIGH-2, MEDIUM-1, etc.
-- Mark status as: ✅ Fixed / ⚠️ Acknowledged / ❌ Open
-
-## Important Notes
-- Be thorough but concise
-- Focus on security-critical issues first
-- Provide actionable recommendations
-- Include line numbers where possible
-- Consider the protocol description context
-- If no vulnerabilities found, document security strengths
 `;
 
-export const SYSTEM_PROMPT = `You are an expert smart contract security auditor following the Trail of Bits Testing Handbook methodology.
+// Generate network-specific analysis instructions based on context
+export function generateNetworkAnalysis(context: AuditContext): string {
+  if (!context.targetNetworks.length) return '';
+
+  const networks = context.targetNetworks;
+  const warnings: string[] = [];
+  const checks: string[] = [];
+
+  networks.forEach((network) => {
+    const info = NETWORK_INFO[network];
+    
+    if (!info.supportsPUSH0) {
+      warnings.push(`- ${info.name}: PUSH0 opcode NOT supported. Flag any contract using Solidity >=0.8.20 without evm_version override.`);
+      checks.push(`Check for PUSH0 compatibility issues for ${info.name}`);
+    }
+
+    if (info.hasSequencer) {
+      warnings.push(`- ${info.name}: Uses centralized sequencer. Check for sequencer trust assumptions and downtime handling.`);
+      checks.push(`Verify sequencer-related risks for ${info.name}`);
+    }
+
+    info.notes.forEach(note => {
+      warnings.push(`- ${info.name}: ${note}`);
+    });
+  });
+
+  if (networks.length > 1) {
+    checks.push('Multi-chain deployment: Verify consistent behavior across all target networks');
+    checks.push('Check for chain-specific assumptions (block times, finality, etc.)');
+  }
+
+  return `
+## NETWORK-SPECIFIC ANALYSIS REQUIRED
+
+Target Networks: ${networks.map(n => NETWORK_INFO[n].name).join(', ')}
+
+### Network Warnings
+${warnings.join('\n')}
+
+### Required Checks
+${checks.map(c => `- [ ] ${c}`).join('\n')}
+`;
+}
+
+// Generate protocol-specific analysis based on category
+export function generateProtocolAnalysis(context: AuditContext): string {
+  const category = context.protocolCategory;
+  const analyses: Record<string, string> = {
+    'defi-lending': `
+### LENDING PROTOCOL ANALYSIS
+Focus areas:
+- Liquidation mechanism correctness
+- Interest rate calculation accuracy
+- Collateral factor validation
+- Bad debt prevention
+- Oracle price manipulation resistance
+- Flash loan attack vectors on collateral
+- Borrow/repay reentrancy
+`,
+    'defi-dex': `
+### DEX/AMM PROTOCOL ANALYSIS
+Focus areas:
+- Price manipulation via large trades
+- Sandwich attack susceptibility
+- Slippage protection adequacy
+- LP token accounting accuracy
+- Fee calculation precision
+- Flash swap callback validation
+- Reserve manipulation attacks
+`,
+    'defi-yield': `
+### YIELD/VAULT PROTOCOL ANALYSIS
+Focus areas:
+- Share price manipulation (first depositor attack)
+- Donation attacks
+- Harvest function access control
+- Strategy trust assumptions
+- Withdrawal timing attacks
+- Reward distribution fairness
+- Emergency withdrawal safety
+`,
+    'bridge': `
+### BRIDGE PROTOCOL ANALYSIS
+Focus areas:
+- Message authentication/verification
+- Replay attack prevention (cross-chain)
+- Finality assumptions per chain
+- Relayer trust model
+- Timeout/recovery mechanisms
+- Double-spending prevention
+- Rate limiting on large transfers
+`,
+    'dao-governance': `
+### GOVERNANCE PROTOCOL ANALYSIS
+Focus areas:
+- Flash loan voting attacks
+- Proposal execution safety
+- Timelock adequacy
+- Quorum manipulation
+- Vote delegation attacks
+- Emergency pause mechanisms
+- Proposal spam prevention
+`,
+    'staking': `
+### STAKING PROTOCOL ANALYSIS
+Focus areas:
+- Reward distribution accuracy
+- Slashing mechanism safety
+- Unbonding period attacks
+- Delegation manipulation
+- Validator selection fairness
+- Reward claim reentrancy
+`,
+  };
+
+  return analyses[category] || '';
+}
+
+// Generate integration-specific checks
+export function generateIntegrationAnalysis(context: AuditContext): string {
+  if (!context.externalIntegrations.length) return '';
+
+  const checks: string[] = [];
+
+  if (context.externalIntegrations.includes('chainlink')) {
+    checks.push(`
+### CHAINLINK INTEGRATION CHECKS
+- Verify latestRoundData() return value validation
+- Check for stale price handling (updatedAt check)
+- Verify round completeness (answeredInRound >= roundId)
+- Check sequencer uptime feed usage on L2
+- Verify price deviation tolerance
+`);
+  }
+
+  if (context.externalIntegrations.includes('uniswap')) {
+    checks.push(`
+### UNISWAP INTEGRATION CHECKS
+- Avoid using slot0 for price (manipulable)
+- Use TWAP with adequate window
+- Validate swap callbacks
+- Check for sandwich attack vectors
+- Verify minimum output amounts
+`);
+  }
+
+  if (context.externalIntegrations.includes('aave') || context.externalIntegrations.includes('compound')) {
+    checks.push(`
+### LENDING PROTOCOL INTEGRATION CHECKS
+- Verify liquidation bonus assumptions
+- Check interest rate model compatibility
+- Validate reserve factor handling
+- Check for reentrancy via callbacks
+`);
+  }
+
+  if (context.externalIntegrations.includes('layerzero') || 
+      context.externalIntegrations.includes('wormhole') || 
+      context.externalIntegrations.includes('ccip')) {
+    checks.push(`
+### CROSS-CHAIN MESSAGING CHECKS
+- Validate source chain verification
+- Check message replay prevention
+- Verify endpoint/router addresses
+- Validate payload decoding
+- Check for fee handling issues
+`);
+  }
+
+  return checks.join('\n');
+}
+
+// Generate the full system prompt with context
+export function generateSystemPrompt(context?: AuditContext): string {
+  let contextualInstructions = '';
+  
+  if (context) {
+    contextualInstructions = `
+
+## AUDIT CONTEXT PROVIDED
+
+${generateNetworkAnalysis(context)}
+${generateProtocolAnalysis(context)}
+${generateIntegrationAnalysis(context)}
+
+### Additional Context
+- Upgrade Pattern: ${context.upgradePattern}
+- Uses Flash Loans: ${context.usesFlashLoans ? 'YES - Check for flash loan attack vectors' : 'No'}
+- Handles Native ETH: ${context.handlesNativeETH ? 'YES - Check for ETH handling issues' : 'No'}
+- Has Privileged Roles: ${context.hasPrivilegedRoles ? 'YES - Analyze centralization risks' : 'No'}
+- EOA-Only Functions: ${context.interactsWithEOAs ? 'YES - Verify tx.origin usage is appropriate' : 'No'}
+${context.additionalNotes ? `\nUser Notes: ${context.additionalNotes}` : ''}
+`;
+  }
+
+  return `You are an expert smart contract security auditor following the Trail of Bits Testing Handbook methodology.
 
 Your task is to perform a comprehensive security audit of the provided Solidity smart contracts.
 
 ${AUDIT_PLAYBOOK}
+${contextualInstructions}
 
-IMPORTANT INSTRUCTIONS:
-1. Analyze ALL provided contracts thoroughly
-2. Consider the protocol description for context
-3. If test files are provided, analyze test coverage
-4. Generate EXACTLY two markdown reports as specified
-5. Be specific with line numbers and code references
-6. Provide actionable fix recommendations with Before/After code
-7. Use the exact severity emoji system: 🔴🟠🟡🔵ℹ️
-8. Format tables properly in markdown
-9. If contracts are well-written, acknowledge security strengths
+## FALSE POSITIVE PREVENTION
 
-Your response MUST be valid JSON with this exact structure:
+CRITICAL: Avoid these common false positives:
+1. **Reentrancy in Solidity >=0.8.0 with CEI pattern**: If state is updated before external calls, it's NOT reentrancy
+2. **Overflow in Solidity >=0.8.0**: Built-in overflow protection exists, don't flag basic arithmetic
+3. **Intentional centralization**: If admin roles are documented, don't flag as unexpected
+4. **SafeMath in >=0.8.0**: Redundant but not a vulnerability
+5. **Test contracts**: Ignore _test.sol, _mock.sol, Test*.sol files for vulnerabilities
+6. **Abstract contracts**: Don't flag missing implementations in abstract/interface contracts
+7. **View function reentrancy**: Only flag if there's actual state that could be exploited
+
+For EVERY Critical/High finding, you MUST provide:
+1. Specific code location (file:line)
+2. Step-by-step exploit scenario
+3. Why this is exploitable (not just theoretically possible)
+4. Realistic economic impact
+
+If you cannot provide these details, downgrade the severity.
+
+## OUTPUT REQUIREMENTS
+
+Generate EXACTLY two markdown reports:
+
+### File 1: SECURITY_AUDIT_REPORT.md
+Executive summary with:
+1. Executive Summary (risk matrix table with confidence levels)
+2. Network Compatibility Analysis (if multi-chain)
+3. Contracts in Scope (table with lines and descriptions)
+4. Detailed Findings (each with location, exploit path, impact, recommendation)
+5. Security Controls Verified (checkmark tables)
+6. Architecture Review (ASCII diagrams if applicable)
+7. Recommendations (prioritized by severity)
+8. Conclusion
+
+### File 2: VULNERABILITY_ANALYSIS.md
+Technical documentation with:
+1. Summary Table (severity, confidence, status)
+2. Critical/High Findings (with full exploit paths and Before/After code)
+3. Medium Findings (with Before/After code)
+4. Low/Info Findings
+5. Network-Specific Issues (if applicable)
+6. Remediation Checklist
+7. Suggested Invariants for Testing
+
+## Format Rules
+- Use emoji severity: 🔴🟠🟡🔵ℹ️
+- Add confidence tags: [HIGH CONFIDENCE] [MEDIUM CONFIDENCE]
+- Include \`\`\`solidity code blocks
+- Use markdown tables
+- Number as: CRITICAL-1, HIGH-1, MEDIUM-1, etc.
+- Status: ✅ Fixed / ⚠️ Acknowledged / ❌ Open
+
+Your response MUST be valid JSON:
 {
   "securityReport": "full markdown content of SECURITY_AUDIT_REPORT.md",
   "vulnerabilityAnalysis": "full markdown content of VULNERABILITY_ANALYSIS.md"
 }
 
 Do not include any text outside the JSON object.`;
+}
+
+// Legacy export for backwards compatibility
+export const SYSTEM_PROMPT = generateSystemPrompt();
+

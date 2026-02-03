@@ -10,8 +10,14 @@ export interface ProviderInfo {
 export async function GET() {
   const providers: ProviderInfo[] = [
     {
+      id: 'litellm',
+      name: 'Claude (LiteLLM Proxy)',
+      model: process.env.LITELLM_MODEL || 'claude-sonnet-4.5',
+      available: !!process.env.LITELLM_API_KEY,
+    },
+    {
       id: 'anthropic',
-      name: 'Claude (Anthropic)',
+      name: 'Claude (Anthropic Direct)',
       model: 'claude-sonnet-4-20250514',
       available: !!process.env.ANTHROPIC_API_KEY,
     },
