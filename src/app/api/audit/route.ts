@@ -182,31 +182,34 @@ export async function POST(request: NextRequest) {
     
     // Add mode-specific instructions
     if (auditDepth === 'quick') {
-      userMessage += '⚡ **QUICK AUDIT MODE** - STRICT BREVITY REQUIREMENTS:\n';
-      userMessage += '- Report ALL severity levels but VERY BRIEFLY\n';
-      userMessage += '- Each finding: Title + 1 sentence description + 1 line fix suggestion\n';
-      userMessage += '- NO code snippets except 2-3 lines for Critical only\n';
-      userMessage += '- NO exploit scenarios, NO PoC, NO architecture review\n';
-      userMessage += '- OMIT Before/After code comparisons entirely\n';
-      userMessage += '- MAX 3000 words total. Prioritize COMPLETION over detail.\n\n';
-    } else {
-      userMessage += '🔍 **DEEP AUDIT MODE** - Be COMPREHENSIVE. Include:\n';
+      userMessage += '⚡ **QUICK AUDIT MODE** - Be concise but complete:\n';
+      userMessage += '- Include Executive Summary with Risk Matrix\n';
       userMessage += '- All severity levels (Critical, High, Medium, Low, Info)\n';
+      userMessage += '- Each finding: Title, Location, Description (2-3 sentences), Impact\n';
+      userMessage += '- Brief code fix recommendation (no full Before/After)\n';
+      userMessage += '- Skip detailed exploit scenarios and PoC code\n';
+      userMessage += '- MAX 4000 words. Prioritize COMPLETION.\n\n';
+    } else {
+      userMessage += '🔍 **DEEP AUDIT MODE** - Be COMPREHENSIVE:\n';
+      userMessage += '- Executive Summary with Risk Matrix\n';
+      userMessage += '- All severity levels with detailed descriptions\n';
+      userMessage += '- Complete Before/After code examples for each finding\n';
       userMessage += '- Detailed exploit paths and PoC scenarios\n';
-      userMessage += '- Complete Before/After code examples\n';
-      userMessage += '- Extensive recommendations with code fixes\n';
-      userMessage += '- Architecture review and gas optimizations\n\n';
+      userMessage += '- Architecture review and recommendations\n';
+      userMessage += '- Gas optimizations if relevant\n\n';
     }
     
-    userMessage += 'Generate:\n';
-    userMessage += '1. SECURITY_AUDIT_REPORT.md - Executive summary with findings\n';
-    userMessage += '2. VULNERABILITY_ANALYSIS.md - Technical details with Before/After code\n';
+    userMessage += 'Generate a SINGLE comprehensive SECURITY_AUDIT_REPORT.md that includes:\n';
+    userMessage += '1. Executive Summary with Risk Assessment Matrix\n';
+    userMessage += '2. Contracts in Scope\n';
+    userMessage += '3. Detailed Findings (each with: Description, Vulnerable Code, Impact, Recommendation/Fix)\n';
+    userMessage += '4. Conclusions and Next Steps\n';
     
     if (context?.targetNetworks.length) {
       userMessage += '\nIMPORTANT: Pay special attention to network-specific issues for the target networks listed above.\n';
     }
     
-    userMessage += '\nRespond with valid JSON containing both reports. IMPORTANT: Ensure the JSON is complete and properly closed with }}. Do not get cut off mid-response.';
+    userMessage += '\nRespond with valid JSON: {"report": "<markdown content>"}. Ensure JSON is complete and properly closed.';
 
     // Call the appropriate AI provider
     let responseText: string;
@@ -231,23 +234,12 @@ export async function POST(request: NextRequest) {
       console.error('Failed to parse AI response:', parseError);
       
       // Try to recover truncated JSON by extracting markdown content
-      let securityReport = '';
-      let vulnerabilityAnalysis = '';
+      let report = '';
       
-      // Look for securityReport content
-      const securityMatch = responseText.match(/"securityReport"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"vulnerabilityAnalysis"|$)/);
-      if (securityMatch) {
-        securityReport = securityMatch[1]
-          .replace(/\\n/g, '\n')
-          .replace(/\\t/g, '\t')
-          .replace(/\\"/g, '"')
-          .replace(/\\\\/g, '\\');
-      }
-      
-      // Look for vulnerabilityAnalysis content
-      const vulnMatch = responseText.match(/"vulnerabilityAnalysis"\s*:\s*"([\s\S]*)/);
-      if (vulnMatch) {
-        vulnerabilityAnalysis = vulnMatch[1]
+      // Look for report content
+      const reportMatch = responseText.match(/"report"\s*:\s*"([\s\S]*)/);
+      if (reportMatch) {
+        report = reportMatch[1]
           .replace(/\\n/g, '\n')
           .replace(/\\t/g, '\t')
           .replace(/\\"/g, '"')
@@ -255,32 +247,27 @@ export async function POST(request: NextRequest) {
           .replace(/"\s*\}\s*$/, ''); // Remove trailing "}" if present
       }
       
-      if (securityReport || vulnerabilityAnalysis) {
+      if (report) {
         console.log('Recovered truncated response successfully');
-        return NextResponse.json({
-          securityReport: securityReport || '# Security Audit Report\n\n*Report was truncated. See Vulnerability Analysis for available findings.*',
-          vulnerabilityAnalysis: vulnerabilityAnalysis || '# Vulnerability Analysis\n\n*Analysis was truncated during generation.*',
-        });
+        return NextResponse.json({ report });
       }
       
       // If recovery failed, return raw markdown (strip JSON wrapper)
       const cleanedResponse = responseText
         .replace(/^```json\s*/, '')
         .replace(/```\s*$/, '')
-        .replace(/^\{\s*"securityReport"\s*:\s*"/, '')
+        .replace(/^\{\s*"report"\s*:\s*"/, '')
         .replace(/\\n/g, '\n')
         .replace(/\\t/g, '\t')
         .replace(/\\"/g, '"');
       
       return NextResponse.json({
-        securityReport: cleanedResponse.substring(0, 50000) || '# Security Audit Report\n\n## Response Parsing Issue\n\nThe AI generated a response but it could not be parsed. Please try again.',
-        vulnerabilityAnalysis: '# Vulnerability Analysis\n\n*See Security Report above for all findings.*',
+        report: cleanedResponse.substring(0, 50000) || '# Security Audit Report\n\n## Response Parsing Issue\n\nThe AI generated a response but it could not be parsed. Please try again.',
       });
     }
 
     return NextResponse.json({
-      securityReport: parsedResponse.securityReport || '# No security report generated',
-      vulnerabilityAnalysis: parsedResponse.vulnerabilityAnalysis || '# No vulnerability analysis generated',
+      report: parsedResponse.report || '# No report generated',
     });
 
   } catch (error) {

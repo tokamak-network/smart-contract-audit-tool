@@ -94,8 +94,7 @@ export interface AuditRequest {
 }
 
 export interface AuditResponse {
-  securityReport: string;
-  vulnerabilityAnalysis: string;
+  report: string;
   success: boolean;
   error?: string;
 }
@@ -103,8 +102,7 @@ export interface AuditResponse {
 export interface AuditState {
   isLoading: boolean;
   reports: {
-    securityReport: string;
-    vulnerabilityAnalysis: string;
+    report: string;
   } | null;
   error: string | null;
 }

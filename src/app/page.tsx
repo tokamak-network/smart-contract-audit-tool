@@ -8,7 +8,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import ReportPreview from '@/components/ReportPreview';
 import AuditContextForm, { DEFAULT_AUDIT_CONTEXT } from '@/components/AuditContextForm';
 import { ContractFile, AuditState, AuditContext } from '@/lib/types';
-import { SAMPLE_SECURITY_REPORT, SAMPLE_VULNERABILITY_REPORT } from '@/lib/sampleReports';
+import { SAMPLE_AUDIT_REPORT } from '@/lib/sampleReports';
 
 interface Provider {
   id: string;
@@ -37,8 +37,7 @@ export default function Home() {
     setAuditState({
       isLoading: false,
       reports: {
-        securityReport: SAMPLE_SECURITY_REPORT,
-        vulnerabilityAnalysis: SAMPLE_VULNERABILITY_REPORT,
+        report: SAMPLE_AUDIT_REPORT,
       },
       error: null,
     });
@@ -91,8 +90,7 @@ export default function Home() {
       setAuditState({
         isLoading: false,
         reports: {
-          securityReport: data.securityReport,
-          vulnerabilityAnalysis: data.vulnerabilityAnalysis,
+          report: data.report,
         },
         error: null,
       });
@@ -177,19 +175,13 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Reports */}
+            {/* Report */}
             <div className="space-y-6">
               <ReportPreview
                 title="Security Audit Report"
-                content={auditState.reports.securityReport}
+                content={auditState.reports.report}
                 filename="SECURITY_AUDIT_REPORT.md"
                 icon="security"
-              />
-              <ReportPreview
-                title="Vulnerability Analysis"
-                content={auditState.reports.vulnerabilityAnalysis}
-                filename="VULNERABILITY_ANALYSIS.md"
-                icon="vulnerability"
               />
             </div>
           </div>
