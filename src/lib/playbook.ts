@@ -2,7 +2,7 @@
 // Enhanced version with advanced detection patterns and network-specific checks
 
 import { AuditContext, NETWORK_INFO, TargetNetwork } from './types';
-import { generateAuditChecklist, ContractCategory } from './auditChecklist';
+import { generateAuditChecklist, ContractCategory, AuditDepth } from './auditChecklist';
 
 export const AUDIT_PLAYBOOK = `
 # AI Security Audit Playbook - Smart Contract Security Audit Methodology
@@ -440,16 +440,17 @@ export function generateIntegrationAnalysis(context: AuditContext): string {
 }
 
 // Generate the full system prompt with context and contextual checklist
-export function generateSystemPrompt(context?: AuditContext, sourceCode?: string): string {
+export function generateSystemPrompt(context?: AuditContext, sourceCode?: string, auditDepth: AuditDepth = 'deep'): string {
   let contextualInstructions = '';
   let contextualChecklist = '';
   
-  // Generate contextual checklist based on source code
+  // Generate contextual checklist based on source code and audit depth
   if (sourceCode) {
-    const { categories, checklist, tokenEstimate } = generateAuditChecklist(sourceCode);
+    const { categories, checklist, tokenEstimate } = generateAuditChecklist(sourceCode, auditDepth);
     contextualChecklist = `
 ## CONTEXTUAL SECURITY CHECKLIST
 Based on detected contract patterns: ${categories.join(', ') || 'general'}
+Audit mode: ${auditDepth.toUpperCase()}
 (Estimated tokens: ~${tokenEstimate})
 
 ${checklist}
@@ -483,24 +484,47 @@ ${AUDIT_PLAYBOOK}
 ${contextualChecklist}
 ${contextualInstructions}
 
-## FALSE POSITIVE PREVENTION
+## FALSE POSITIVE PREVENTION - READ CAREFULLY
 
-CRITICAL: Avoid these common false positives:
-1. **Reentrancy in Solidity >=0.8.0 with CEI pattern**: If state is updated before external calls, it's NOT reentrancy
-2. **Overflow in Solidity >=0.8.0**: Built-in overflow protection exists, don't flag basic arithmetic
-3. **Intentional centralization**: If admin roles are documented, don't flag as unexpected
-4. **SafeMath in >=0.8.0**: Redundant but not a vulnerability
-5. **Test contracts**: Ignore _test.sol, _mock.sol, Test*.sol files for vulnerabilities
-6. **Abstract contracts**: Don't flag missing implementations in abstract/interface contracts
-7. **View function reentrancy**: Only flag if there's actual state that could be exploited
+### CRITICAL FALSE POSITIVES TO AVOID:
 
-For EVERY Critical/High finding, you MUST provide:
-1. Specific code location (file:line)
-2. Step-by-step exploit scenario
-3. Why this is exploitable (not just theoretically possible)
-4. Realistic economic impact
+**1. REENTRANCY - Do NOT flag as Critical/High unless ALL conditions met:**
+- ❌ USDC, USDT, DAI have NO transfer callbacks - cannot cause reentrancy
+- ❌ Solidity >=0.8.0 with SafeERC20 and CEI pattern = NOT vulnerable
+- ❌ ERC20 standard tokens without callbacks = NOT vulnerable  
+- ✅ ONLY flag reentrancy if: ERC777/ERC1155 tokens, OR custom tokens with hooks, OR callbacks to untrusted contracts
+- ✅ If you flag reentrancy, you MUST identify the SPECIFIC callback mechanism that enables it
 
-If you cannot provide these details, downgrade the severity.
+**2. ARITHMETIC OVERFLOW/UNDERFLOW - Do NOT flag in Solidity >=0.8.0:**
+- ❌ Solidity 0.8.x has BUILT-IN overflow protection that REVERTS automatically
+- ❌ Do NOT claim "arithmetic underflow can be exploited" - it simply reverts
+- ✅ You CAN flag: Logic issues where revert is undesirable (DoS via revert), or unchecked{} blocks
+- ✅ Frame correctly: "Withdrawal reverts if amount > deposits (DoS)" NOT "Underflow steals funds"
+
+**3. UNINITIALIZED VARIABLES:**
+- ✅ Only Critical if contract is ACTUALLY deployable without initialization
+- ✅ Check if there's a constructor, initializer, or setup function before flagging
+
+**4. KNOWN TOKEN BEHAVIORS - Not vulnerabilities:**
+- USDC: pausable, blacklistable - document but don't flag as vulnerability of the audited contract
+- USDT: no return value - only flag if SafeERC20 not used
+- Fee-on-transfer: flag only if balance check before/after is missing AND matters for accounting
+
+**5. DO NOT FLAG:**
+- Test contracts (*_test.sol, *Test.sol, Mock*.sol)
+- Abstract contracts missing implementations
+- Interface definitions
+- Documentation comments describing attacks (not actual code)
+- Intentional admin privileges when documented
+
+### SEVERITY CALIBRATION:
+- 🔴 CRITICAL: Direct, unconditional fund loss. Attacker profits > gas cost. No user action required.
+- 🟠 HIGH: Fund loss possible with specific conditions OR severe DoS
+- 🟡 MEDIUM: Limited impact, requires unusual conditions, or affects only edge cases
+- 🔵 LOW: Code quality, gas optimization, best practices
+- ℹ️ INFO: Suggestions, style, documentation
+
+**If you cannot construct a concrete exploit with specific steps and economic profit, DOWNGRADE the severity.**
 
 ## OUTPUT FORMAT
 
@@ -539,5 +563,5 @@ export const SYSTEM_PROMPT = generateSystemPrompt();
 
 // Export the checklist functions for use in route.ts
 export { generateAuditChecklist, detectContractCategories } from './auditChecklist';
-export type { ContractCategory } from './auditChecklist';
+export type { ContractCategory, AuditDepth } from './auditChecklist';
 

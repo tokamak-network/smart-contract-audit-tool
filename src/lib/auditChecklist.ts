@@ -4,8 +4,38 @@
  * Organized for contextual loading to optimize token usage
  */
 
+export type AuditDepth = 'quick' | 'deep';
+
 // ============================================================================
-// CORE VULNERABILITY CHECKS (~50 items, always included)
+// QUICK MODE CORE CHECKS (~20 items, for quick audits)
+// Simplified, high-impact checks only - avoids complex checks that cause false positives
+// ============================================================================
+
+export const QUICK_CORE_CHECKS = `
+## QUICK AUDIT CORE CHECKS
+
+### Access Control [CRITICAL]
+- [ ] Functions missing access modifiers?
+- [ ] Privilege transfer uses 2-step process?
+- [ ] Critical state variables uninitialized?
+
+### Input Validation [HIGH]
+- [ ] Zero address checks for critical parameters?
+- [ ] Array length validated?
+- [ ] Edge values (0, max) cause issues?
+
+### External Calls [HIGH]
+- [ ] Return value of .call() checked?
+- [ ] Uses SafeERC20 for token transfers?
+
+### Logic Errors [MEDIUM]
+- [ ] Off-by-one in comparisons?
+- [ ] Logical operators correct?
+- [ ] Code symmetry (deposit vs withdraw)?
+`;
+
+// ============================================================================
+// DEEP MODE CORE CHECKS (~50 items, comprehensive)
 // These are the most critical and common vulnerabilities
 // ============================================================================
 
@@ -549,15 +579,62 @@ export function getContextualChecklist(categories: ContractCategory[]): string {
 }
 
 /**
- * Main function: analyzes source code and returns appropriate checklist
+ * Gets a simplified checklist for quick audits
+ * Focuses on highest-impact, lowest-false-positive checks
  */
-export function generateAuditChecklist(sourceCode: string): {
+export function getQuickChecklist(categories: ContractCategory[]): string {
+  let checklist = QUICK_CORE_CHECKS;
+
+  // Add only the most critical category-specific checks for quick mode
+  // Bridge-specific checks are always included if bridge detected (common source of critical issues)
+  if (categories.includes('bridge')) {
+    checklist += `
+## BRIDGE QUICK CHECKS
+- [ ] Message replay prevented (nonce/hash tracking)?
+- [ ] Source chain/sender validated?
+- [ ] Withdrawal amount <= deposits tracked?
+`;
+  }
+
+  // Proxy checks are critical for upgradeable contracts
+  if (categories.includes('proxy')) {
+    checklist += `
+## PROXY QUICK CHECKS
+- [ ] Initializer modifier used?
+- [ ] Implementation disables initializers?
+- [ ] _authorizeUpgrade restricted (UUPS)?
+`;
+  }
+
+  // Oracle checks for price-dependent contracts
+  if (categories.includes('oracle')) {
+    checklist += `
+## ORACLE QUICK CHECKS
+- [ ] Staleness checked (updatedAt)?
+- [ ] Price != 0 validated?
+- [ ] Sequencer uptime on L2?
+`;
+  }
+
+  return checklist;
+}
+
+/**
+ * Main function: analyzes source code and returns appropriate checklist
+ * @param sourceCode - The contract source code to analyze
+ * @param auditDepth - 'quick' for simplified checks, 'deep' for comprehensive
+ */
+export function generateAuditChecklist(sourceCode: string, auditDepth: AuditDepth = 'deep'): {
   categories: ContractCategory[];
   checklist: string;
   tokenEstimate: number;
 } {
   const categories = detectContractCategories(sourceCode);
-  const checklist = getContextualChecklist(categories);
+  
+  // Use simplified checklist for quick mode to reduce false positives
+  const checklist = auditDepth === 'quick' 
+    ? getQuickChecklist(categories)
+    : getContextualChecklist(categories);
   
   // Rough token estimate: ~4 chars per token
   const tokenEstimate = Math.ceil(checklist.length / 4);

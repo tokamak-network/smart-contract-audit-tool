@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
     // Combine all contract source code for contextual checklist detection
     const allSourceCode = contracts.map(c => c.content).join('\n\n');
 
-    // Generate context-aware system prompt with contextual checklist
-    const systemPrompt = generateSystemPrompt(context, allSourceCode);
+    // Generate context-aware system prompt with contextual checklist and audit depth
+    const systemPrompt = generateSystemPrompt(context, allSourceCode, auditDepth);
 
     // Build the user message with all contracts and context
     let userMessage = '# Smart Contract Security Audit Request\n\n';
