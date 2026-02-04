@@ -397,7 +397,7 @@ export default function Home() {
                       {auditState.isLoading && auditDepth === 'quick' ? 'Auditing...' : 'Quick Audit'}
                     </button>
                     <p className="text-xs text-gray-500 text-center">
-                      ⚡ ~1-2 minutes • Critical & High issues only
+                      ⚡ ~1 minute • Concise report
                     </p>
                     
                     <button
@@ -416,7 +416,7 @@ export default function Home() {
                       {auditState.isLoading && auditDepth === 'deep' ? 'Deep Analyzing...' : 'Deep Audit'}
                     </button>
                     <p className="text-xs text-gray-500 text-center">
-                      🔍 ~3-5 minutes • Comprehensive analysis
+                      🔍 ~2-3 minutes • All severity levels
                     </p>
                   </div>
                 </div>

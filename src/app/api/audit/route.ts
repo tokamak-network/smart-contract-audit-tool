@@ -23,8 +23,8 @@ type AIProvider = 'litellm' | 'anthropic' | 'openai';
 type AuditDepth = 'quick' | 'deep';
 
 const MAX_TOKENS: Record<AuditDepth, number> = {
-  quick: 16000,  // ~1-2 minutes, concise report (2000 words = ~2800 tokens, plenty of buffer)
-  deep: 64000,   // ~3-5 minutes, comprehensive
+  quick: 8000,   // ~1 minute, concise report with all severities
+  deep: 20000,   // ~2-3 minutes, comprehensive analysis
 };
 
 function getProvider(requestedProvider?: string): { provider: AIProvider; apiKey: string } {
@@ -183,12 +183,12 @@ export async function POST(request: NextRequest) {
     // Add mode-specific instructions
     if (auditDepth === 'quick') {
       userMessage += '⚡ **QUICK AUDIT MODE**:\n';
-      userMessage += '- Report ALL Critical and High severity issues (do not skip any!)\n';
-      userMessage += '- Keep descriptions concise: 3-4 sentences per finding\n';
-      userMessage += '- Include one brief code snippet per critical finding\n';
-      userMessage += '- Skip Medium/Low/Info severity issues\n';
-      userMessage += '- Skip architecture review, gas optimization, testing sections\n';
-      userMessage += '- Target: ~3000 words total. Ensure JSON completes properly.\n\n';
+      userMessage += '- Report all severity levels (Critical, High, Medium, Low, Info)\n';
+      userMessage += '- Keep descriptions BRIEF: 1-2 sentences per finding\n';
+      userMessage += '- Minimal code snippets (only for Critical issues)\n';
+      userMessage += '- Skip detailed exploit paths and PoC scenarios\n';
+      userMessage += '- No architecture review or gas optimization sections\n';
+      userMessage += '- Target: ~5000 words total. Be concise.\n\n';
     } else {
       userMessage += '🔍 **DEEP AUDIT MODE** - Be COMPREHENSIVE. Include:\n';
       userMessage += '- All severity levels (Critical, High, Medium, Low, Info)\n';
