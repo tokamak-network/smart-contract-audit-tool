@@ -2,6 +2,7 @@
 // Enhanced version with advanced detection patterns and network-specific checks
 
 import { AuditContext, NETWORK_INFO, TargetNetwork } from './types';
+import { generateAuditChecklist, ContractCategory } from './auditChecklist';
 
 export const AUDIT_PLAYBOOK = `
 # AI Security Audit Playbook - Smart Contract Security Audit Methodology
@@ -438,9 +439,22 @@ export function generateIntegrationAnalysis(context: AuditContext): string {
   return checks.join('\n');
 }
 
-// Generate the full system prompt with context
-export function generateSystemPrompt(context?: AuditContext): string {
+// Generate the full system prompt with context and contextual checklist
+export function generateSystemPrompt(context?: AuditContext, sourceCode?: string): string {
   let contextualInstructions = '';
+  let contextualChecklist = '';
+  
+  // Generate contextual checklist based on source code
+  if (sourceCode) {
+    const { categories, checklist, tokenEstimate } = generateAuditChecklist(sourceCode);
+    contextualChecklist = `
+## CONTEXTUAL SECURITY CHECKLIST
+Based on detected contract patterns: ${categories.join(', ') || 'general'}
+(Estimated tokens: ~${tokenEstimate})
+
+${checklist}
+`;
+  }
   
   if (context) {
     contextualInstructions = `
@@ -466,6 +480,7 @@ ${context.additionalNotes ? `\nUser Notes: ${context.additionalNotes}` : ''}
 Your task is to perform a comprehensive security audit of the provided Solidity smart contracts.
 
 ${AUDIT_PLAYBOOK}
+${contextualChecklist}
 ${contextualInstructions}
 
 ## FALSE POSITIVE PREVENTION
@@ -487,43 +502,33 @@ For EVERY Critical/High finding, you MUST provide:
 
 If you cannot provide these details, downgrade the severity.
 
-## OUTPUT REQUIREMENTS
+## OUTPUT FORMAT
 
-Generate EXACTLY two markdown reports:
+Generate a comprehensive security audit report in markdown format with:
 
-### File 1: SECURITY_AUDIT_REPORT.md
-Executive summary with:
-1. Executive Summary (risk matrix table with confidence levels)
-2. Network Compatibility Analysis (if multi-chain)
-3. Contracts in Scope (table with lines and descriptions)
-4. Detailed Findings (each with location, exploit path, impact, recommendation)
-5. Security Controls Verified (checkmark tables)
-6. Architecture Review (ASCII diagrams if applicable)
-7. Recommendations (prioritized by severity)
-8. Conclusion
-
-### File 2: VULNERABILITY_ANALYSIS.md
-Technical documentation with:
-1. Summary Table (severity, confidence, status)
-2. Critical/High Findings (with full exploit paths and Before/After code)
-3. Medium Findings (with Before/After code)
-4. Low/Info Findings
-5. Network-Specific Issues (if applicable)
-6. Remediation Checklist
-7. Suggested Invariants for Testing
+1. **Executive Summary** - Risk level, key findings overview
+2. **Findings** - Each finding with:
+   - Severity (🔴 CRITICAL / 🟠 HIGH / 🟡 MEDIUM / 🔵 LOW / ℹ️ INFO)
+   - Confidence level [HIGH CONFIDENCE] or [MEDIUM CONFIDENCE]
+   - Location (contract, function, line if applicable)
+   - Description of the vulnerability
+   - Exploit scenario (required for Critical/High)
+   - Impact assessment
+   - **Before/After code** showing the fix
+   - Recommendation
+3. **Security Checklist Results** - Which checks passed/failed
+4. **Recommendations Summary** - Prioritized action items
 
 ## Format Rules
-- Use emoji severity: 🔴🟠🟡🔵ℹ️
+- Use emoji severity indicators: 🔴🟠🟡🔵ℹ️
 - Add confidence tags: [HIGH CONFIDENCE] [MEDIUM CONFIDENCE]
-- Include \`\`\`solidity code blocks
-- Use markdown tables
-- Number as: CRITICAL-1, HIGH-1, MEDIUM-1, etc.
-- Status: ✅ Fixed / ⚠️ Acknowledged / ❌ Open
+- Include \`\`\`solidity code blocks for Before/After examples
+- Use markdown tables for summaries
+- Number findings as: CRITICAL-1, HIGH-1, MEDIUM-1, etc.
 
 Your response MUST be valid JSON:
 {
-  "securityReport": "full markdown content of SECURITY_AUDIT_REPORT.md",
-  "vulnerabilityAnalysis": "full markdown content of VULNERABILITY_ANALYSIS.md"
+  "report": "full markdown content of the security audit report"
 }
 
 Do not include any text outside the JSON object.`;
@@ -531,4 +536,8 @@ Do not include any text outside the JSON object.`;
 
 // Legacy export for backwards compatibility
 export const SYSTEM_PROMPT = generateSystemPrompt();
+
+// Export the checklist functions for use in route.ts
+export { generateAuditChecklist, detectContractCategories } from './auditChecklist';
+export type { ContractCategory } from './auditChecklist';
 
