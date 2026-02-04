@@ -8,9 +8,11 @@ A Next.js web application that uses AI to perform security audits on Solidity sm
 - **🤖 Multiple AI Providers**: Supports LiteLLM proxy, Anthropic Claude, and OpenAI
 - **⚡ Quick & Deep Audit Modes**: Fast overview or comprehensive analysis
 - **🎯 Context-Aware Analysis**: Configure target networks, protocol type, and integrations
-- **📋 Professional Reports**: Generates two comprehensive audit reports:
-  - `SECURITY_AUDIT_REPORT.md` - Executive summary for stakeholders
-  - `VULNERABILITY_ANALYSIS.md` - Technical details for developers
+- **📋 Professional Audit Report**: Generates a comprehensive security audit report with:
+  - Executive summary with risk assessment matrix
+  - Detailed findings with Before/After code examples
+  - Exploit scenarios and proof-of-concept code (Deep mode)
+  - Architecture review and recommendations
 - **👀 Live Preview**: View reports in rendered markdown or raw format
 - **⬇️ Download**: Export reports as markdown files
 - **🌐 Network-Specific Checks**: PUSH0 compatibility, L2 sequencer risks, and more
