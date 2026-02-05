@@ -126,6 +126,55 @@ Check the protocols you integrate with:
 - **Raw**: See the raw markdown source
 - **Download**: Export as `.md` files
 
+## 🧠 How the AI Audit Works
+
+The AI auditor combines multiple security knowledge sources with contextual understanding to deliver accurate, relevant findings.
+
+### Knowledge Foundation
+
+The system is built on three authoritative security methodologies:
+
+1. **Trail of Bits Testing Handbook** - Industry-standard vulnerability patterns and testing procedures
+2. **Cyfrin Audit Checklist** - Comprehensive smart contract security checklist from professional auditors  
+3. **RareSkills Security Guides** - Advanced DeFi-specific attack patterns and edge cases
+
+These are embedded into the system prompt, giving the AI a structured framework for what to look for and how to classify findings.
+
+### Context-Aware Analysis
+
+The **Audit Context Configuration** directly influences what the AI checks for:
+
+| Context Type | What It Enables |
+|-------------|-----------------|
+| **Network Selection** | L2 sequencer risks, PUSH0 compatibility, EVM version-specific vulnerabilities |
+| **Protocol Category** | Category-specific checklists (lending → liquidation attacks, DEX → MEV/slippage, bridges → replay attacks) |
+| **External Integrations** | Integration-aware checks (Chainlink → stale prices, Uniswap → slot0 manipulation, LayerZero → message validation) |
+| **Upgrade Pattern** | Proxy-specific vulnerabilities (UUPS → `_authorizeUpgrade`, Transparent → admin slot collision) |
+
+### Dynamic Checklist Loading
+
+Instead of checking everything generically, the system:
+
+1. **Detects contract type** from the source code (ERC20, DeFi, Bridge, etc.)
+2. **Loads relevant checklists** based on detected patterns + user-provided context
+3. **Applies false-positive guards** to prevent common misclassifications (e.g., reentrancy in standard ERC20)
+
+This means:
+- **More relevant findings** - Checks match your actual contract architecture
+- **Fewer false positives** - Context prevents irrelevant warnings
+- **Appropriate severity** - Network/integration context influences risk assessment
+
+### Quick vs Deep Mode
+
+| Aspect | Quick Mode | Deep Mode |
+|--------|------------|-----------|
+| **Token Budget** | ~10K tokens | ~20K tokens |
+| **Checklist** | Core checks only (~20 items) | Full contextual checklist (~50+ items) |
+| **Output** | Concise findings, brief descriptions | Detailed exploits, multiple remediation options |
+| **Best For** | Initial assessment, CI/CD integration | Pre-deployment review, thorough analysis |
+
+---
+
 ## 🔍 Audit Methodology
 
 Follows **Trail of Bits Testing Handbook**, checking for:
@@ -193,7 +242,8 @@ smart-contract-auditor/
 │   │   ├── ReportPreview.tsx
 │   │   └── AuditContextForm.tsx  # Context configuration
 │   └── lib/
-│       ├── playbook.ts           # Audit methodology
+│       ├── playbook.ts           # Audit methodology & system prompt
+│       ├── auditChecklist.ts     # Cyfrin/RareSkills security checklists
 │       ├── types.ts              # TypeScript types
 │       └── sampleReports.ts      # Demo preview data
 ├── .env.example
