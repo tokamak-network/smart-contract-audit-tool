@@ -359,6 +359,109 @@ Results are saved to `test-contracts/results/` with timestamps, allowing you to:
 | Overall Detection | **≥80%** | Higher is better |
 | False Positive Rate | **0%** | Safe code should not be flagged as Critical/High |
 
+## 🤖 GitHub Actions CI/CD
+
+The project includes automated regression testing via GitHub Actions to prevent quality regressions when modifying the audit logic.
+
+### How It Works
+
+The workflow (`.github/workflows/audit-regression.yml`) automatically runs when:
+
+| Trigger | What Runs | Use Case |
+|---------|-----------|----------|
+| **Push to main** | Quick mode tests | Fast feedback after merge |
+| **PR to main** | Quick + Deep mode tests | Full validation before merge |
+| **Manual trigger** | Quick mode tests | On-demand testing |
+
+**Only triggers when these files change:**
+- `src/lib/playbook.ts` — System prompt & methodology
+- `src/lib/auditChecklist.ts` — Security checklists
+
+### Setup (One-time)
+
+1. Go to your GitHub repo → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Add the secret:
+   - **Name:** `LITELLM_API_KEY`
+   - **Value:** Your LiteLLM API key
+
+### Running Manually
+
+1. Go to your GitHub repo → **Actions** tab
+2. Select **"Audit Quality Regression Tests"** from the left sidebar
+3. Click **"Run workflow"** dropdown (top right)
+4. Select branch (`main`) and click **"Run workflow"**
+
+![Manual trigger location](https://docs.github.com/assets/cb-37128/images/help/actions/workflow-dispatch-run.png)
+
+### What the Workflow Does
+
+```
+1. Checkout code
+2. Setup Node.js 20
+3. Install dependencies (npm ci)
+4. Create .env from GitHub Secrets
+5. Build the app (npm run build)
+6. Start production server
+7. Run regression tests
+8. Upload results as artifacts
+9. Comment on PR with results table (if PR)
+10. Fail CI if tests don't pass
+```
+
+### CI Pass/Fail Criteria
+
+| Condition | Result |
+|-----------|--------|
+| Must Detect = 100% AND False Positives = 0% | ✅ **Pass** |
+| Must Detect < 100% | ❌ **Fail** |
+| False Positives > 0% | ❌ **Fail** |
+
+### Viewing Results
+
+**After a run completes:**
+
+1. Go to **Actions** → Click on the workflow run
+2. **Summary tab**: See pass/fail status
+3. **Artifacts section**: Download `regression-test-results` for detailed JSON
+4. **PR comments**: If triggered by PR, results are posted as a comment
+
+### Example PR Comment
+
+When a PR triggers the workflow, it automatically comments with results:
+
+```markdown
+## 🛡️ Audit Regression Test Results
+
+### ✅ QUICK Mode
+| Metric | Result |
+|--------|--------|
+| Must Detect | 3/3 (100.0%) |
+| Overall | 8/8 (100.0%) |
+| False Positives | 0/1 (0%) |
+| Time | 91.4s |
+
+### ✅ DEEP Mode
+| Metric | Result |
+|--------|--------|
+| Must Detect | 3/3 (100.0%) |
+| Overall | 8/8 (100.0%) |
+| False Positives | 0/1 (0%) |
+| Time | 185.2s |
+```
+
+### Protecting Main Branch (Optional)
+
+To require tests to pass before merging:
+
+1. Go to **Settings** → **Branches** → **Add rule**
+2. Branch name pattern: `main`
+3. Check **"Require status checks to pass before merging"**
+4. Select **"Run Audit Regression Tests"**
+5. Save changes
+
+Now PRs cannot be merged until regression tests pass.
+
 ## 🔧 Configuration
 
 ### Environment Variables
