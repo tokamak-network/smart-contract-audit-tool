@@ -262,7 +262,16 @@ smart-contract-auditor/
 
 ## 🧪 Regression Testing
 
-The project includes a regression test suite to verify audit quality and track improvements over time.
+**Why Regression Testing?**
+
+The AI auditor's quality depends heavily on its prompts (`playbook.ts`) and security checklists (`auditChecklist.ts`). When we tweak these to improve detection of certain vulnerabilities, we might accidentally introduce false positives or miss other issues. Regression testing provides **objective, reproducible metrics** to validate that changes actually improve audit quality without breaking existing detection capabilities.
+
+The test suite uses intentionally vulnerable smart contracts with known security issues. After each change, we measure:
+- **Detection rate**: Are critical vulnerabilities being caught?
+- **False positive rate**: Is safe code incorrectly flagged as high-severity?
+- **Consistency**: Do results stay stable across runs?
+
+This transforms audit quality from subjective ("seems better") to measurable ("detection improved from 75% → 87.5%").
 
 ### Test Contracts
 
