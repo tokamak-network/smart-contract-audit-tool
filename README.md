@@ -168,10 +168,12 @@ This means:
 
 | Aspect | Quick Mode | Deep Mode |
 |--------|------------|-----------|
+| **AI Model** | Claude Sonnet 4.5 (fast, cost-effective) | Claude Opus 4.5 (best quality) |
 | **Token Budget** | ~10K tokens | ~20K tokens |
 | **Checklist** | Core checks only (~20 items) | Full contextual checklist (~50+ items) |
 | **Output** | Concise findings, brief descriptions | Detailed exploits, multiple remediation options |
 | **Best For** | Initial assessment, CI/CD integration | Pre-deployment review, thorough analysis |
+| **Cost** | $ | $$$$$ (~5x more) |
 
 ---
 
