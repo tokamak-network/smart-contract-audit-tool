@@ -246,9 +246,118 @@ smart-contract-auditor/
 │       ├── auditChecklist.ts     # Cyfrin/RareSkills security checklists
 │       ├── types.ts              # TypeScript types
 │       └── sampleReports.ts      # Demo preview data
+├── test-contracts/               # Regression test suite
+│   ├── vulnerable/               # Intentionally vulnerable contracts
+│   │   ├── VulnerableBridge.sol  # 8 known vulnerabilities
+│   │   └── VulnerableVault.sol   # 7 known vulnerabilities
+│   ├── safe/                     # False positive tests
+│   │   └── SafePatterns.sol      # 5 safe patterns that should NOT be flagged
+│   ├── results/                  # Historical test results (JSON)
+│   └── test-definitions.json     # Machine-readable expected findings
+├── scripts/
+│   └── test-regression.js        # Automated regression test runner
 ├── .env.example
 └── package.json
 ```
+
+## 🧪 Regression Testing
+
+The project includes a regression test suite to verify audit quality and track improvements over time.
+
+### Test Contracts
+
+| Contract | Type | Vulnerabilities | Purpose |
+|----------|------|-----------------|---------|
+| `VulnerableBridge.sol` | Bridge | 8 intentional + 1 FP test | Critical vuln detection |
+| `VulnerableVault.sol` | DeFi Vault | 7 intentional + 1 FP test | DeFi-specific patterns |
+| `SafePatterns.sol` | Safe Code | 5 safe patterns | False positive prevention |
+
+### Running Tests
+
+```bash
+# Start the dev server (required)
+npm run dev
+
+# In another terminal:
+
+# Quick mode (default) - ~1 min per contract
+npm run test:audit
+
+# Deep mode - ~2-3 min per contract
+npm run test:audit:deep
+
+# Test specific contract only
+npm run test:audit -- --contract bridge
+npm run test:audit -- --contract vault
+
+# CI mode (exits with code 1 on failure)
+npm run test:audit:ci
+```
+
+### Understanding Results
+
+The test runner checks three categories of findings:
+
+| Category | Icon | Pass Criteria |
+|----------|------|---------------|
+| **Must Detect** | 🔴 | 100% required - Critical vulns that MUST be found |
+| **Should Detect** | 🟠 | Important but minor misses acceptable |
+| **Nice to Detect** | 🔵 | Bonus points for thoroughness |
+| **False Positives** | 🚫 | 0% is the goal - Safe code flagged as Critical/High |
+
+### Example Output
+
+```
+════════════════════════════════════════════════════════════
+  📋 Testing: VulnerableBridge
+════════════════════════════════════════════════════════════
+
+  🔴 MUST DETECT:
+    ✅ VULN-1: Uninitialized storage variables [CRITICAL]
+    ✅ VULN-2: Arbitrary token bridging [CRITICAL]
+    ✅ VULN-4: Integer underflow DoS in withdrawal [HIGH]
+
+  🟠 SHOULD DETECT:
+    ✅ VULN-5: Bypassable EOA check [HIGH]
+    ⚠️ VULN-7: Missing replay protection [HIGH]
+
+  🚫 FALSE POSITIVE TESTS:
+    ✅ PASS: safeWithdraw() CEI pattern should NOT be flagged
+
+  📊 SCORES:
+    Must Detect:  3/3 (100.0%)
+    Overall:      7/8 (87.5%)
+    False Positive: 0/1 (0%)
+
+════════════════════════════════════════════════════════════
+  ✅ ALL TESTS PASSED
+════════════════════════════════════════════════════════════
+```
+
+### Comparing Quick vs Deep Mode
+
+Run both modes to see the quality difference:
+
+```bash
+# Quick mode
+npm run test:audit
+
+# Deep mode  
+npm run test:audit:deep
+```
+
+Results are saved to `test-contracts/results/` with timestamps, allowing you to:
+- Track quality improvements over time
+- Compare detection rates between modes
+- Identify regressions after code changes
+
+### Target Metrics
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Must Detect | **100%** | Non-negotiable critical findings |
+| Overall Detection | **≥80%** | Higher is better |
+| False Positive Rate | **0%** | Safe code should not be flagged as Critical/High |
 
 ## 🔧 Configuration
 

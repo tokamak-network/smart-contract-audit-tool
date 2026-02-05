@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:audit": "node scripts/test-regression.js",
+    "test:audit:deep": "node scripts/test-regression.js --deep",
+    "test:audit:ci": "node scripts/test-regression.js --ci"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.72.1",

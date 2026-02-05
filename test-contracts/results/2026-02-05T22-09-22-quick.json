@@ -1,0 +1,161 @@
+{
+  "timestamp": "2026-02-05T22:09:22.247Z",
+  "depth": "quick",
+  "summary": {
+    "mustDetect": "3/3 (100.0%)",
+    "overall": "8/8 (100.0%)",
+    "falsePositives": "1/1 (100.0%)",
+    "totalTime": "91.4s"
+  },
+  "contracts": [
+    {
+      "name": "VulnerableBridge",
+      "depth": "quick",
+      "timestamp": "2026-02-05T22:09:22.237Z",
+      "mustDetect": {
+        "found": 3,
+        "total": 3,
+        "items": [
+          {
+            "id": "VULN-1",
+            "keywords": [
+              "uninitiali",
+              "constructor",
+              "storage",
+              "address(0)",
+              "empty constructor"
+            ],
+            "severity": "CRITICAL",
+            "description": "Uninitialized storage variables",
+            "detected": true
+          },
+          {
+            "id": "VULN-2",
+            "keywords": [
+              "arbitrary token",
+              "token validation",
+              "any token",
+              "any ERC20",
+              "invalid token",
+              "whitelist"
+            ],
+            "severity": "CRITICAL",
+            "description": "Arbitrary token bridging",
+            "detected": true
+          },
+          {
+            "id": "VULN-4",
+            "keywords": [
+              "underflow",
+              "overflow",
+              "revert",
+              "dos",
+              "denial of service",
+              "deposits.*amount",
+              "insufficient"
+            ],
+            "severity": "HIGH",
+            "description": "Integer underflow DoS in withdrawal",
+            "detected": true
+          }
+        ]
+      },
+      "shouldDetect": {
+        "found": 3,
+        "total": 3,
+        "items": [
+          {
+            "id": "VULN-5",
+            "keywords": [
+              "eoa",
+              "bypass",
+              "constructor",
+              "extcodesize",
+              "isContract",
+              "code.length"
+            ],
+            "severity": "HIGH",
+            "description": "Bypassable EOA check",
+            "detected": true
+          },
+          {
+            "id": "VULN-7",
+            "keywords": [
+              "replay",
+              "nonce",
+              "duplicate",
+              "processed",
+              "message.*id"
+            ],
+            "severity": "HIGH",
+            "description": "Missing replay protection",
+            "detected": true
+          },
+          {
+            "id": "VULN-3",
+            "keywords": [
+              "zero address",
+              "address(0)",
+              "null address",
+              "address zero"
+            ],
+            "severity": "MEDIUM",
+            "description": "Missing zero address validation",
+            "detected": true
+          }
+        ]
+      },
+      "niceToDetect": {
+        "found": 2,
+        "total": 2,
+        "items": [
+          {
+            "id": "VULN-6",
+            "keywords": [
+              "gas limit",
+              "mingas",
+              "gas.*valid",
+              "gas.*low"
+            ],
+            "severity": "MEDIUM",
+            "description": "No gas limit validation",
+            "detected": true
+          },
+          {
+            "id": "VULN-8",
+            "keywords": [
+              "console",
+              "hardhat",
+              "debug",
+              "import.*console"
+            ],
+            "severity": "INFO",
+            "description": "Debug import in production",
+            "detected": true
+          }
+        ]
+      },
+      "falsePositives": {
+        "triggered": 1,
+        "total": 1,
+        "items": [
+          {
+            "id": "FP-1",
+            "description": "safeWithdraw() CEI pattern with SafeERC20 should NOT be flagged as Critical/High reentrancy",
+            "keywords": [
+              "safeWithdraw",
+              "reentrancy"
+            ],
+            "maxAcceptableSeverity": "LOW",
+            "triggered": true
+          }
+        ]
+      },
+      "scores": {
+        "critical": "100.0",
+        "overall": "100.0",
+        "falsePositiveRate": "100.0"
+      }
+    }
+  ]
+}

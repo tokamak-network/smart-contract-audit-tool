@@ -1,0 +1,199 @@
+{
+  "testSuites": [
+    {
+      "name": "VulnerableBridge",
+      "contractFile": "vulnerable/VulnerableBridge.sol",
+      "context": {
+        "targetNetworks": ["ethereum", "optimism"],
+        "protocolCategory": "bridge",
+        "upgradePattern": "none",
+        "externalIntegrations": [],
+        "usesFlashLoans": false,
+        "handlesNativeETH": false,
+        "hasPrivilegedRoles": false,
+        "interactsWithEOAs": true
+      },
+      "expectedFindings": {
+        "mustDetect": [
+          {
+            "id": "VULN-1",
+            "keywords": ["uninitiali", "constructor", "storage", "address(0)", "empty constructor"],
+            "severity": "CRITICAL",
+            "description": "Uninitialized storage variables"
+          },
+          {
+            "id": "VULN-2",
+            "keywords": ["arbitrary token", "token validation", "any token", "any ERC20", "invalid token", "whitelist"],
+            "severity": "CRITICAL",
+            "description": "Arbitrary token bridging"
+          },
+          {
+            "id": "VULN-4",
+            "keywords": ["underflow", "overflow", "revert", "dos", "denial of service", "deposits.*amount", "insufficient"],
+            "severity": "HIGH",
+            "description": "Integer underflow DoS in withdrawal"
+          }
+        ],
+        "shouldDetect": [
+          {
+            "id": "VULN-5",
+            "keywords": ["eoa", "bypass", "constructor", "extcodesize", "isContract", "code.length"],
+            "severity": "HIGH",
+            "description": "Bypassable EOA check"
+          },
+          {
+            "id": "VULN-7",
+            "keywords": ["replay", "nonce", "duplicate", "processed", "message.*id"],
+            "severity": "HIGH",
+            "description": "Missing replay protection"
+          },
+          {
+            "id": "VULN-3",
+            "keywords": ["zero address", "address(0)", "null address", "address zero"],
+            "severity": "MEDIUM",
+            "description": "Missing zero address validation"
+          }
+        ],
+        "niceToDetect": [
+          {
+            "id": "VULN-6",
+            "keywords": ["gas limit", "mingas", "gas.*valid", "gas.*low"],
+            "severity": "MEDIUM",
+            "description": "No gas limit validation"
+          },
+          {
+            "id": "VULN-8",
+            "keywords": ["console", "hardhat", "debug", "import.*console"],
+            "severity": "INFO",
+            "description": "Debug import in production"
+          }
+        ],
+        "falsePositives": [
+          {
+            "id": "FP-1",
+            "description": "safeWithdraw() CEI pattern with SafeERC20 should NOT be flagged as Critical/High reentrancy",
+            "keywords": ["safeWithdraw", "reentrancy"],
+            "maxAcceptableSeverity": "LOW"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VulnerableVault",
+      "contractFile": "vulnerable/VulnerableVault.sol",
+      "context": {
+        "targetNetworks": ["ethereum"],
+        "protocolCategory": "defi-yield",
+        "upgradePattern": "none",
+        "externalIntegrations": [],
+        "usesFlashLoans": false,
+        "handlesNativeETH": false,
+        "hasPrivilegedRoles": true,
+        "interactsWithEOAs": false
+      },
+      "expectedFindings": {
+        "mustDetect": [
+          {
+            "id": "VULN-2",
+            "keywords": ["first deposit", "share.*inflat", "share.*manipulat", "donation attack", "share price", "1 wei"],
+            "severity": "CRITICAL",
+            "description": "First depositor attack"
+          },
+          {
+            "id": "VULN-6",
+            "keywords": ["emergency", "drain", "rug", "owner.*withdraw", "admin.*fund", "all funds"],
+            "severity": "CRITICAL",
+            "description": "Admin can drain all funds"
+          }
+        ],
+        "shouldDetect": [
+          {
+            "id": "VULN-4",
+            "keywords": ["precision", "division.*before.*multiplic", "rounding", "truncat"],
+            "severity": "HIGH",
+            "description": "Division before multiplication"
+          },
+          {
+            "id": "VULN-7",
+            "keywords": ["SafeERC20", "safeTransfer", "return value", "USDT", "non-standard"],
+            "severity": "HIGH",
+            "description": "Not using SafeERC20"
+          },
+          {
+            "id": "VULN-5",
+            "keywords": ["allowance", "underflow", "allowed.*shares", "approve"],
+            "severity": "HIGH",
+            "description": "Allowance underflow"
+          }
+        ],
+        "niceToDetect": [
+          {
+            "id": "VULN-1",
+            "keywords": ["zero address", "address(0)", "constructor.*valid"],
+            "severity": "MEDIUM",
+            "description": "Missing zero address validation in constructor"
+          },
+          {
+            "id": "VULN-3",
+            "keywords": ["slippage", "front-run", "sandwich", "MEV", "minShares"],
+            "severity": "MEDIUM",
+            "description": "No slippage protection"
+          }
+        ],
+        "falsePositives": [
+          {
+            "id": "FP-1",
+            "description": "pause/unpause with onlyOwner should NOT be flagged as Critical/High unexpected privilege",
+            "keywords": ["pause", "unpause"],
+            "maxAcceptableSeverity": "LOW"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SafePatterns",
+      "contractFile": "safe/SafePatterns.sol",
+      "context": {
+        "targetNetworks": ["ethereum"],
+        "protocolCategory": "defi-yield",
+        "upgradePattern": "none",
+        "externalIntegrations": [],
+        "usesFlashLoans": false,
+        "handlesNativeETH": false,
+        "hasPrivilegedRoles": true,
+        "interactsWithEOAs": false
+      },
+      "expectedFindings": {
+        "mustDetect": [],
+        "shouldDetect": [],
+        "niceToDetect": [],
+        "falsePositives": [
+          {
+            "id": "FP-1",
+            "description": "deposit() with ReentrancyGuard + SafeERC20 should NOT be Critical/High reentrancy",
+            "keywords": ["deposit", "reentrancy"],
+            "maxAcceptableSeverity": "LOW"
+          },
+          {
+            "id": "FP-2",
+            "description": "withdrawDirect() with CEI + SafeERC20 should NOT be Critical/High reentrancy",
+            "keywords": ["withdrawDirect", "reentrancy"],
+            "maxAcceptableSeverity": "LOW"
+          },
+          {
+            "id": "FP-3",
+            "description": "Documented admin functions should NOT be Critical/High unexpected privilege",
+            "keywords": ["pause", "unexpected", "centrali"],
+            "maxAcceptableSeverity": "MEDIUM"
+          },
+          {
+            "id": "FP-4",
+            "description": "Solidity 0.8.x arithmetic should NOT be flagged as overflow vulnerability",
+            "keywords": ["safeArithmetic", "overflow", "underflow"],
+            "maxAcceptableSeverity": "LOW"
+          }
+        ]
+      }
+    }
+  ]
+}
