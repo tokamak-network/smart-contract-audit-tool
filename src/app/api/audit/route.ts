@@ -27,6 +27,12 @@ const MAX_TOKENS: Record<AuditDepth, number> = {
   deep: 20000,   // ~2-3 minutes, comprehensive analysis
 };
 
+// Model selection: Quick mode uses Sonnet (fast + cheap), Deep mode uses Opus (best quality)
+const LITELLM_MODELS: Record<AuditDepth, string> = {
+  quick: process.env.LITELLM_MODEL_QUICK || 'claude-sonnet-4.5',
+  deep: process.env.LITELLM_MODEL_DEEP || 'claude-opus-4.5',
+};
+
 function getProvider(requestedProvider?: string): { provider: AIProvider; apiKey: string } {
   // If user requested a specific provider, try to use it
   if (requestedProvider === 'litellm' && process.env.LITELLM_API_KEY) {
@@ -80,14 +86,16 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userMessage: str
   return completion.choices[0]?.message?.content || '';
 }
 
-async function callLiteLLM(apiKey: string, systemPrompt: string, userMessage: string, maxTokens: number): Promise<string> {
+async function callLiteLLM(apiKey: string, systemPrompt: string, userMessage: string, maxTokens: number, auditDepth: AuditDepth): Promise<string> {
   const baseURL = process.env.LITELLM_BASE_URL || 'https://api.ai.tokamak.network';
-  const model = process.env.LITELLM_MODEL || 'claude-sonnet-4.5';
+  const model = LITELLM_MODELS[auditDepth];
   
   const openai = new OpenAI({ 
     apiKey,
     baseURL 
   });
+
+  console.log(`LiteLLM using model: ${model} for ${auditDepth} mode`);
   
   const completion = await openai.chat.completions.create({
     model,
@@ -217,7 +225,7 @@ export async function POST(request: NextRequest) {
     // Call the appropriate AI provider
     let responseText: string;
     if (provider === 'litellm') {
-      responseText = await callLiteLLM(apiKey, systemPrompt, userMessage, maxTokens);
+      responseText = await callLiteLLM(apiKey, systemPrompt, userMessage, maxTokens, auditDepth);
     } else if (provider === 'anthropic') {
       responseText = await callAnthropic(apiKey, systemPrompt, userMessage, maxTokens);
     } else {
