@@ -389,7 +389,7 @@ export default function Home() {
                       {auditState.isLoading && auditDepth === 'quick' ? 'Auditing...' : 'Quick Audit'}
                     </button>
                     <p className="text-xs text-gray-500 text-center">
-                      ⚡ ~1 minute • Sonnet 4.5
+                      ⚡ ~1 minute • Qwen3 (FREE)
                     </p>
                     
                     <button

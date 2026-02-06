@@ -11,7 +11,7 @@ import { AuditRequest, AuditContext, NETWORK_INFO } from '@/lib/types';
 //
 //   LITELLM_API_KEY=sk-...                           (for LiteLLM Proxy)
 //   LITELLM_BASE_URL=https://api.ai.tokamak.network  (LiteLLM endpoint)
-//   LITELLM_MODEL=claude-sonnet-4.5                  (model name)
+//   LITELLM_MODEL_QUICK=qwen3-coder-flash            (quick mode - FREE)
 //
 //   ANTHROPIC_API_KEY=sk-ant-api03-...  (for direct Claude API)
 //   OPENAI_API_KEY=sk-...               (for direct OpenAI API)
@@ -27,9 +27,9 @@ const MAX_TOKENS: Record<AuditDepth, number> = {
   deep: 20000,   // ~2-3 minutes, comprehensive analysis
 };
 
-// Model selection: Quick mode uses Sonnet (fast + cheap), Deep mode uses Opus (best quality)
+// Model selection: Quick mode uses Qwen3 (fast + FREE), Deep mode uses Opus (best quality)
 const LITELLM_MODELS: Record<AuditDepth, string> = {
-  quick: process.env.LITELLM_MODEL_QUICK || 'claude-sonnet-4.5',
+  quick: process.env.LITELLM_MODEL_QUICK || 'qwen3-coder-flash',
   deep: process.env.LITELLM_MODEL_DEEP || 'claude-opus-4.5',
 };
 

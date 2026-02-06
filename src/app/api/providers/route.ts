@@ -11,8 +11,8 @@ export async function GET() {
   const providers: ProviderInfo[] = [
     {
       id: 'litellm',
-      name: 'Claude (LiteLLM Proxy)',
-      model: process.env.LITELLM_MODEL || 'claude-sonnet-4.5',
+      name: 'Qwen3 / Opus (LiteLLM Proxy)',
+      model: process.env.LITELLM_MODEL_QUICK || 'qwen3-coder-flash',
       available: !!process.env.LITELLM_API_KEY,
     },
     {

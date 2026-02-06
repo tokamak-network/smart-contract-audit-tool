@@ -46,7 +46,8 @@ A Next.js web application that uses AI to perform security audits on Solidity sm
    ```env
    LITELLM_API_KEY=sk-your-litellm-key
    LITELLM_BASE_URL=https://api.ai.tokamak.network
-   LITELLM_MODEL=claude-sonnet-4.5
+   LITELLM_MODEL_QUICK=qwen3-coder-flash
+   LITELLM_MODEL_DEEP=claude-opus-4.5
    ```
    
    **Option B: Direct Anthropic**
@@ -168,12 +169,12 @@ This means:
 
 | Aspect | Quick Mode | Deep Mode |
 |--------|------------|-----------|
-| **AI Model** | Claude Sonnet 4.5 (fast, cost-effective) | Claude Opus 4.5 (best quality) |
+| **AI Model** | Qwen3 Coder Flash (fast, FREE - local) | Claude Opus 4.5 (best quality) |
 | **Token Budget** | ~10K tokens | ~20K tokens |
 | **Checklist** | Core checks only (~20 items) | Full contextual checklist (~50+ items) |
 | **Output** | Concise findings, brief descriptions | Detailed exploits, multiple remediation options |
 | **Best For** | Initial assessment, CI/CD integration | Pre-deployment review, thorough analysis |
-| **Cost** | $ | $$$$$ (~5x more) |
+| **Cost** | FREE | $$$$$ |
 
 ---
 
@@ -219,8 +220,8 @@ Follows **Trail of Bits Testing Handbook**, checking for:
 - **Framework**: Next.js 14 (App Router)
 - **Styling**: Tailwind CSS v4
 - **AI Providers**: 
-  - LiteLLM Proxy (OpenAI-compatible)
-  - Anthropic Claude (claude-sonnet-4)
+  - LiteLLM Proxy (Qwen3 + Opus)
+  - Anthropic Claude (direct API)
   - OpenAI GPT-4o
 - **Icons**: Lucide React
 - **Markdown**: react-markdown + remark-gfm
@@ -481,7 +482,8 @@ Now PRs cannot be merged until regression tests pass.
 |----------|----------|-------------|
 | `LITELLM_API_KEY` | One of these | LiteLLM proxy API key |
 | `LITELLM_BASE_URL` | With LiteLLM | Proxy endpoint URL |
-| `LITELLM_MODEL` | With LiteLLM | Model name (e.g., claude-sonnet-4.5) |
+| `LITELLM_MODEL_QUICK` | With LiteLLM | Quick mode model (qwen3-coder-flash) |
+| `LITELLM_MODEL_DEEP` | With LiteLLM | Deep mode model (claude-opus-4.5) |
 | `ANTHROPIC_API_KEY` | One of these | Direct Anthropic API key |
 | `OPENAI_API_KEY` | One of these | Direct OpenAI API key |
 

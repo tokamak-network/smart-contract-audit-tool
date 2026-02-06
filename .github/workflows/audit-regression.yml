@@ -37,7 +37,7 @@ jobs:
         run: |
           echo "LITELLM_API_KEY=${{ secrets.LITELLM_API_KEY }}" >> .env
           echo "LITELLM_BASE_URL=https://api.ai.tokamak.network" >> .env
-          echo "LITELLM_MODEL_QUICK=claude-sonnet-4.5" >> .env
+          echo "LITELLM_MODEL_QUICK=qwen3-coder-flash" >> .env
           echo "LITELLM_MODEL_DEEP=claude-opus-4.5" >> .env
 
       - name: Build application
