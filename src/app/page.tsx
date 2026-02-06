@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Send, AlertCircle, CheckCircle2, Info, Cpu, Eye, Zap, Search } from 'lucide-react';
+import { Shield, Send, AlertCircle, CheckCircle2, Info, Eye, Zap, Search } from 'lucide-react';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -333,41 +333,10 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* AI Provider Selection */}
-                  {providers.length > 0 && (
+                  {/* Show error if no providers available */}
+                  {providers.length > 0 && providers.filter(p => p.available).length === 0 && (
                     <div className="border-t border-gray-200 pt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <Cpu className="w-4 h-4 inline mr-1" />
-                        AI Provider
-                      </label>
-                      <div className="space-y-2">
-                        {providers.filter(p => p.available).map((provider) => (
-                          <label
-                            key={provider.id}
-                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                              selectedProvider === provider.id
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="provider"
-                              value={provider.id}
-                              checked={selectedProvider === provider.id}
-                              onChange={(e) => setSelectedProvider(e.target.value)}
-                              className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                            />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{provider.name}</p>
-                              <p className="text-xs text-gray-500">{provider.model}</p>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                      {providers.filter(p => p.available).length === 0 && (
-                        <p className="text-sm text-red-500">No AI providers configured. Add API keys in .env</p>
-                      )}
+                      <p className="text-sm text-red-500">No AI providers configured. Add API keys in .env</p>
                     </div>
                   )}
 

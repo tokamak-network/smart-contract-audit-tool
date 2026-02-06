@@ -23,7 +23,7 @@ type AIProvider = 'litellm' | 'anthropic' | 'openai';
 type AuditDepth = 'quick' | 'deep';
 
 const MAX_TOKENS: Record<AuditDepth, number> = {
-  quick: 10000,  // ~1 minute, concise report with all severities
+  quick: 20000,  // Qwen3 is FREE - same capacity as Deep
   deep: 20000,   // ~2-3 minutes, comprehensive analysis
 };
 
@@ -247,18 +247,27 @@ export async function POST(request: NextRequest) {
       // Try to recover truncated JSON by extracting markdown content
       let report = '';
       
-      // Look for report content
+      // Look for report content - handle both escaped and unescaped formats
       const reportMatch = responseText.match(/"report"\s*:\s*"([\s\S]*)/);
       if (reportMatch) {
         report = reportMatch[1]
+          // Unescape JSON string sequences
           .replace(/\\n/g, '\n')
           .replace(/\\t/g, '\t')
           .replace(/\\"/g, '"')
           .replace(/\\\\/g, '\\')
-          .replace(/"\s*\}\s*$/, ''); // Remove trailing "}" if present
+          // Remove trailing incomplete sequences
+          .replace(/\\[^ntr"\\]?$/, '')  // Remove incomplete escape at end
+          .replace(/"\s*\}\s*$/, '')      // Remove trailing "}" if present
+          .replace(/"\s*$/, '');          // Remove trailing quote if present
+        
+        // If truncated mid-section, add a note
+        if (!report.includes('## Conclusions') && !report.includes('---\n\n*')) {
+          report += '\n\n---\n\n*Note: Report was truncated due to response length limits. Consider using Deep Audit for longer contracts.*';
+        }
       }
       
-      if (report) {
+      if (report && report.length > 100) {
         console.log('Recovered truncated response successfully');
         return NextResponse.json({ report });
       }
@@ -272,8 +281,14 @@ export async function POST(request: NextRequest) {
         .replace(/\\t/g, '\t')
         .replace(/\\"/g, '"');
       
+      if (cleanedResponse && cleanedResponse.length > 100) {
+        return NextResponse.json({
+          report: cleanedResponse.substring(0, 50000) + '\n\n---\n\n*Note: Report may be incomplete due to response parsing issues.*',
+        });
+      }
+      
       return NextResponse.json({
-        report: cleanedResponse.substring(0, 50000) || '# Security Audit Report\n\n## Response Parsing Issue\n\nThe AI generated a response but it could not be parsed. Please try again.',
+        report: '# Security Audit Report\n\n## Response Parsing Issue\n\nThe AI generated a response but it could not be parsed. Please try again with Deep Audit mode.',
       });
     }
 
