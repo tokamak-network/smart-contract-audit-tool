@@ -418,7 +418,7 @@ export default function Home() {
       <footer className="border-t border-gray-200 mt-16 py-8 bg-white">
         <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
           <p>
-            Powered by Claude AI • Following{' '}
+            Built in the Tokamak Network ecosystem • Following{' '}
             <a
               href="https://appsec.guide"
               target="_blank"
