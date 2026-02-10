@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Send, AlertCircle, CheckCircle2, Info, Eye, Zap, Search } from 'lucide-react';
+import { Shield, Send, AlertCircle, CheckCircle2, Info, Eye, Zap, Search, FlaskConical, ChevronDown } from 'lucide-react';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -17,6 +17,14 @@ interface Provider {
   available: boolean;
 }
 
+interface ModelInfo {
+  id: string;
+  label: string;
+  description: string;
+  speed: 'fast' | 'medium' | 'slow';
+  tier: 'free' | 'standard' | 'premium';
+}
+
 export default function Home() {
   const [contracts, setContracts] = useState<ContractFile[]>([]);
   const [tests, setTests] = useState<ContractFile[]>([]);
@@ -28,6 +36,9 @@ export default function Home() {
   const [auditDepth, setAuditDepth] = useState<'quick' | 'deep' | null>(null);
   const [modelUsed, setModelUsed] = useState<string | null>(null);
   const [wasFallback, setWasFallback] = useState(false);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [selectedCustomModel, setSelectedCustomModel] = useState<string | null>(null);
   const [auditState, setAuditState] = useState<AuditState>({
     isLoading: false,
     reports: null,
@@ -58,6 +69,12 @@ export default function Home() {
         }
       })
       .catch(console.error);
+
+    // Fetch available models for custom picker
+    fetch('/api/models')
+      .then(res => res.json())
+      .then(data => setAvailableModels(data.models || []))
+      .catch(console.error);
   }, []);
 
   const availableProviders = providers.filter(p => p.available);
@@ -80,6 +97,7 @@ export default function Home() {
           provider: selectedProvider,
           context: auditContext,
           auditDepth: depth,
+          ...(depth === 'deep' && selectedCustomModel ? { customModel: selectedCustomModel } : {}),
         }),
       });
 
@@ -116,6 +134,8 @@ export default function Home() {
     setAuditDepth(null);
     setModelUsed(null);
     setWasFallback(false);
+    setShowModelPicker(false);
+    setSelectedCustomModel(null);
     setAuditContext(DEFAULT_AUDIT_CONTEXT);
     // Reset to first available provider
     const firstAvailable = providers.find(p => p.available);
@@ -370,11 +390,11 @@ export default function Home() {
                       disabled={!canSubmit || auditState.isLoading}
                       className={`
                         w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all
-                        ${
+                        ${(
                           canSubmit && !auditState.isLoading
                             ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl'
                             : 'bg-gray-300 cursor-not-allowed'
-                        }
+                        )}
                       `}
                     >
                       <Zap className="w-5 h-5" />
@@ -389,19 +409,92 @@ export default function Home() {
                       disabled={!canSubmit || auditState.isLoading}
                       className={`
                         w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all
-                        ${
+                        ${(
                           canSubmit && !auditState.isLoading
                             ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl'
                             : 'bg-gray-300 cursor-not-allowed'
-                        }
+                        )}
                       `}
                     >
                       <Search className="w-5 h-5" />
-                      {auditState.isLoading && auditDepth === 'deep' ? 'Deep Analyzing...' : 'Deep Audit'}
+                      {auditState.isLoading && auditDepth === 'deep' && !selectedCustomModel ? 'Deep Analyzing...' : 'Deep Audit'}
                     </button>
                     <p className="text-xs text-gray-500 text-center">
                       🔍 ~2-3 minutes • Opus 4.5
                     </p>
+
+                    {/* Custom Model Picker */}
+                    <div className="border-t border-gray-200 pt-3 mt-3">
+                      <button
+                        onClick={() => setShowModelPicker(!showModelPicker)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <FlaskConical className="w-4 h-4" />
+                          Choose your own model
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showModelPicker ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {showModelPicker && (
+                        <div className="mt-2 space-y-2">
+                          {availableModels.length === 0 ? (
+                            <p className="text-xs text-gray-400 text-center py-2">Loading models...</p>
+                          ) : (
+                            <>
+                              <div className="max-h-64 overflow-y-auto space-y-1">
+                                {availableModels.map(model => (
+                                  <button
+                                    key={model.id}
+                                    onClick={() => setSelectedCustomModel(
+                                      selectedCustomModel === model.id ? null : model.id
+                                    )}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                                      selectedCustomModel === model.id
+                                        ? 'bg-purple-100 border border-purple-300 text-purple-800'
+                                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium">{model.label}</span>
+                                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                        model.tier === 'free' ? 'bg-green-100 text-green-700' :
+                                        model.tier === 'premium' ? 'bg-amber-100 text-amber-700' :
+                                        'bg-blue-100 text-blue-700'
+                                      }`}>
+                                        {model.tier === 'free' ? 'FREE' : model.tier === 'premium' ? 'Premium' : 'Standard'}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-0.5">{model.description}</p>
+                                  </button>
+                                ))}
+                              </div>
+
+                              {selectedCustomModel && (
+                                <button
+                                  onClick={() => handleSubmit('deep')}
+                                  disabled={!canSubmit || auditState.isLoading}
+                                  className={`
+                                    w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all
+                                    ${(
+                                      canSubmit && !auditState.isLoading
+                                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg hover:shadow-xl'
+                                        : 'bg-gray-300 cursor-not-allowed'
+                                    )}
+                                  `}
+                                >
+                                  <FlaskConical className="w-5 h-5" />
+                                  {auditState.isLoading && auditDepth === 'deep' && selectedCustomModel
+                                    ? `Running ${availableModels.find(m => m.id === selectedCustomModel)?.label || selectedCustomModel}...`
+                                    : `Audit with ${availableModels.find(m => m.id === selectedCustomModel)?.label || selectedCustomModel}`
+                                  }
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

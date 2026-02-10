@@ -191,8 +191,8 @@ async function callLiteLLM(apiKey: string, systemPrompt: string, userMessage: st
 
 export async function POST(request: NextRequest) {
   try {
-    const body: AuditRequest & { provider?: string; auditDepth?: AuditDepth } = await request.json();
-    const { contracts, tests, protocolDescription, provider: requestedProvider, context, auditDepth = 'quick' } = body;
+    const body: AuditRequest & { provider?: string; auditDepth?: AuditDepth; customModel?: string } = await request.json();
+    const { contracts, tests, protocolDescription, provider: requestedProvider, context, auditDepth = 'quick', customModel } = body;
 
     const { provider, apiKey } = getProvider(requestedProvider);
     const maxTokens = MAX_TOKENS[auditDepth];
@@ -308,12 +308,19 @@ export async function POST(request: NextRequest) {
     let wasFallback = false;
 
     if (provider === 'litellm') {
-      const result = await callLiteLLM(apiKey, systemPrompt, userMessage, maxTokens, auditDepth);
-      responseText = result.text;
-      modelUsed = result.modelUsed;
-      wasFallback = result.wasFallback;
-      if (wasFallback) {
-        console.log(`✅ Fallback successful: used ${modelUsed} instead of Opus`);
+      if (customModel) {
+        // Custom model: call directly, no fallback logic
+        console.log(`🧪 Custom model selected: ${customModel}`);
+        responseText = await callLiteLLMWithModel(apiKey, systemPrompt, userMessage, maxTokens, customModel);
+        modelUsed = customModel;
+      } else {
+        const result = await callLiteLLM(apiKey, systemPrompt, userMessage, maxTokens, auditDepth);
+        responseText = result.text;
+        modelUsed = result.modelUsed;
+        wasFallback = result.wasFallback;
+        if (wasFallback) {
+          console.log(`✅ Fallback successful: used ${modelUsed} instead of Opus`);
+        }
       }
     } else if (provider === 'anthropic') {
       responseText = await callAnthropic(apiKey, systemPrompt, userMessage, maxTokens);
