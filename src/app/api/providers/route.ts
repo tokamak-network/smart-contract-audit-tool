@@ -11,8 +11,8 @@ export async function GET() {
   const providers: ProviderInfo[] = [
     {
       id: 'litellm',
-      name: 'Qwen3 / Opus (LiteLLM Proxy)',
-      model: process.env.LITELLM_MODEL_QUICK || 'qwen3-coder-flash',
+      name: 'Tokamak AI (Opus 4.6 → DeepSeek Reasoner)',
+      model: `Quick: ${process.env.LITELLM_MODEL_QUICK || 'qwen3-coder-flash'} | Deep: ${process.env.LITELLM_MODEL_DEEP || 'anthropic-max-claude-opus-4-6'} → ${process.env.LITELLM_MODEL_DEEP_FALLBACK || 'deepseek-reasoner'}`,
       available: !!process.env.LITELLM_API_KEY,
     },
     {

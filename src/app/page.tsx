@@ -26,6 +26,8 @@ export default function Home() {
   const [auditContext, setAuditContext] = useState<AuditContext>(DEFAULT_AUDIT_CONTEXT);
   const [isDemo, setIsDemo] = useState(false);
   const [auditDepth, setAuditDepth] = useState<'quick' | 'deep' | null>(null);
+  const [modelUsed, setModelUsed] = useState<string | null>(null);
+  const [wasFallback, setWasFallback] = useState(false);
   const [auditState, setAuditState] = useState<AuditState>({
     isLoading: false,
     reports: null,
@@ -94,6 +96,8 @@ export default function Home() {
         },
         error: null,
       });
+      setModelUsed(data.modelUsed || null);
+      setWasFallback(data.wasFallback || false);
     } catch (error) {
       setAuditState({
         isLoading: false,
@@ -110,6 +114,8 @@ export default function Home() {
     setAuditState({ isLoading: false, reports: null, error: null });
     setIsDemo(false);
     setAuditDepth(null);
+    setModelUsed(null);
+    setWasFallback(false);
     setAuditContext(DEFAULT_AUDIT_CONTEXT);
     // Reset to first available provider
     const firstAvailable = providers.find(p => p.available);
@@ -177,6 +183,23 @@ export default function Home() {
 
             {/* Report */}
             <div className="space-y-6">
+              {/* Model info banner */}
+              {modelUsed && !isDemo && (
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm ${
+                  wasFallback
+                    ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                    : 'bg-green-50 border border-green-200 text-green-800'
+                }`}>
+                  <span className="font-medium">
+                    {wasFallback ? '⚡' : '✓'} Model: {modelUsed}
+                  </span>
+                  {wasFallback && (
+                    <span className="text-amber-600">
+                      (Opus 4.6 limit reached — used fallback)
+                    </span>
+                  )}
+                </div>
+              )}
               <ReportPreview
                 title="Security Audit Report"
                 content={auditState.reports.report}

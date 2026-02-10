@@ -27,11 +27,51 @@ const MAX_TOKENS: Record<AuditDepth, number> = {
   deep: 20000,   // ~2-3 minutes, comprehensive analysis
 };
 
-// Model selection: Quick mode uses Qwen3 (fast + FREE), Deep mode uses Opus (best quality)
+// Model selection: Quick mode uses Qwen3 (fast + FREE)
+// Deep mode: Opus 4.6 primary → DeepSeek Reasoner fallback
 const LITELLM_MODELS: Record<AuditDepth, string> = {
   quick: process.env.LITELLM_MODEL_QUICK || 'qwen3-coder-flash',
-  deep: process.env.LITELLM_MODEL_DEEP || 'claude-opus-4.5',
+  deep: process.env.LITELLM_MODEL_DEEP || 'anthropic-max-claude-opus-4-5',
 };
+
+const DEEP_FALLBACK_MODEL = process.env.LITELLM_MODEL_DEEP_FALLBACK || 'deepseek-reasoner';
+
+// ============================================================================
+// OPUS RATE LIMIT CACHE - Approach 1+3 Combined
+// After Opus hits rate limit, skip it for CACHE_DURATION and use fallback directly
+// ============================================================================
+const FALLBACK_CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+let lastOpusFailureTimestamp: number | null = null;
+
+function isOpusCached(): boolean {
+  if (!lastOpusFailureTimestamp) return false;
+  const elapsed = Date.now() - lastOpusFailureTimestamp;
+  if (elapsed > FALLBACK_CACHE_DURATION_MS) {
+    // Cache expired — Opus might be available again
+    lastOpusFailureTimestamp = null;
+    return false;
+  }
+  return true;
+}
+
+function isRateLimitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return msg.includes('rate limit') ||
+           msg.includes('429') ||
+           msg.includes('quota') ||
+           msg.includes('exceeded') ||
+           msg.includes('too many requests') ||
+           msg.includes('budget') ||
+           msg.includes('limit reached') ||
+           msg.includes('key not allowed') ||
+           msg.includes('key_model_access_denied') ||
+           msg.includes('invalid model') ||
+           msg.includes('401') ||
+           msg.includes('400');
+  }
+  return false;
+}
 
 function getProvider(requestedProvider?: string): { provider: AIProvider; apiKey: string } {
   // If user requested a specific provider, try to use it
@@ -86,16 +126,21 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userMessage: str
   return completion.choices[0]?.message?.content || '';
 }
 
-async function callLiteLLM(apiKey: string, systemPrompt: string, userMessage: string, maxTokens: number, auditDepth: AuditDepth): Promise<string> {
+interface LiteLLMResult {
+  text: string;
+  modelUsed: string;
+  wasFallback: boolean;
+}
+
+async function callLiteLLMWithModel(apiKey: string, systemPrompt: string, userMessage: string, maxTokens: number, model: string): Promise<string> {
   const baseURL = process.env.LITELLM_BASE_URL || 'https://api.ai.tokamak.network';
-  const model = LITELLM_MODELS[auditDepth];
   
   const openai = new OpenAI({ 
     apiKey,
     baseURL 
   });
 
-  console.log(`LiteLLM using model: ${model} for ${auditDepth} mode`);
+  console.log(`LiteLLM calling model: ${model}`);
   
   const completion = await openai.chat.completions.create({
     model,
@@ -107,6 +152,41 @@ async function callLiteLLM(apiKey: string, systemPrompt: string, userMessage: st
   });
 
   return completion.choices[0]?.message?.content || '';
+}
+
+async function callLiteLLM(apiKey: string, systemPrompt: string, userMessage: string, maxTokens: number, auditDepth: AuditDepth): Promise<LiteLLMResult> {
+  const primaryModel = LITELLM_MODELS[auditDepth];
+
+  // Quick mode: no fallback needed (Qwen is free)
+  if (auditDepth === 'quick') {
+    const text = await callLiteLLMWithModel(apiKey, systemPrompt, userMessage, maxTokens, primaryModel);
+    return { text, modelUsed: primaryModel, wasFallback: false };
+  }
+
+  // Deep mode: Opus 4.6 → DeepSeek Reasoner fallback
+  // Check if Opus recently hit rate limit (cached failure)
+  if (isOpusCached()) {
+    console.log(`⚡ Opus rate limit cached (${Math.round((Date.now() - lastOpusFailureTimestamp!) / 60000)}min ago) — using ${DEEP_FALLBACK_MODEL} directly`);
+    const text = await callLiteLLMWithModel(apiKey, systemPrompt, userMessage, maxTokens, DEEP_FALLBACK_MODEL);
+    return { text, modelUsed: DEEP_FALLBACK_MODEL, wasFallback: true };
+  }
+
+  // Try Opus first
+  try {
+    console.log(`🔍 Trying primary deep model: ${primaryModel}`);
+    const text = await callLiteLLMWithModel(apiKey, systemPrompt, userMessage, maxTokens, primaryModel);
+    return { text, modelUsed: primaryModel, wasFallback: false };
+  } catch (error) {
+    if (isRateLimitError(error)) {
+      // Cache the failure so subsequent requests skip Opus
+      lastOpusFailureTimestamp = Date.now();
+      console.log(`🟠 Opus rate limit hit — caching for ${FALLBACK_CACHE_DURATION_MS / 60000}min, falling back to ${DEEP_FALLBACK_MODEL}`);
+      const text = await callLiteLLMWithModel(apiKey, systemPrompt, userMessage, maxTokens, DEEP_FALLBACK_MODEL);
+      return { text, modelUsed: DEEP_FALLBACK_MODEL, wasFallback: true };
+    }
+    // Non-rate-limit error — rethrow
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -224,12 +304,23 @@ export async function POST(request: NextRequest) {
 
     // Call the appropriate AI provider
     let responseText: string;
+    let modelUsed: string | undefined;
+    let wasFallback = false;
+
     if (provider === 'litellm') {
-      responseText = await callLiteLLM(apiKey, systemPrompt, userMessage, maxTokens, auditDepth);
+      const result = await callLiteLLM(apiKey, systemPrompt, userMessage, maxTokens, auditDepth);
+      responseText = result.text;
+      modelUsed = result.modelUsed;
+      wasFallback = result.wasFallback;
+      if (wasFallback) {
+        console.log(`✅ Fallback successful: used ${modelUsed} instead of Opus`);
+      }
     } else if (provider === 'anthropic') {
       responseText = await callAnthropic(apiKey, systemPrompt, userMessage, maxTokens);
+      modelUsed = 'claude-sonnet-4';
     } else {
       responseText = await callOpenAI(apiKey, systemPrompt, userMessage, maxTokens);
+      modelUsed = 'gpt-4o';
     }
 
     // Parse the JSON response
@@ -269,7 +360,7 @@ export async function POST(request: NextRequest) {
       
       if (report && report.length > 100) {
         console.log('Recovered truncated response successfully');
-        return NextResponse.json({ report });
+        return NextResponse.json({ report, modelUsed, wasFallback });
       }
       
       // If recovery failed, return raw markdown (strip JSON wrapper)
@@ -284,6 +375,8 @@ export async function POST(request: NextRequest) {
       if (cleanedResponse && cleanedResponse.length > 100) {
         return NextResponse.json({
           report: cleanedResponse.substring(0, 50000) + '\n\n---\n\n*Note: Report may be incomplete due to response parsing issues.*',
+          modelUsed,
+          wasFallback,
         });
       }
       
@@ -294,6 +387,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       report: parsedResponse.report || '# No report generated',
+      modelUsed,
+      wasFallback,
     });
 
   } catch (error) {
