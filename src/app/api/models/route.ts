@@ -16,6 +16,30 @@ const MODEL_META: Record<string, Omit<ModelInfo, 'id'>> = {
     speed: 'fast',
     tier: 'free',
   },
+  'qwen3-235b-thinking': {
+    label: 'Qwen3 235B Thinking',
+    description: 'Large reasoning model with thinking traces',
+    speed: 'slow',
+    tier: 'free',
+  },
+  'qwen3-235b': {
+    label: 'Qwen3 235B',
+    description: 'Large model, fast without reasoning overhead',
+    speed: 'medium',
+    tier: 'free',
+  },
+  'qwen3-80b-next': {
+    label: 'Qwen3 80B Next',
+    description: 'Mid-size Qwen, good balance of speed & quality',
+    speed: 'fast',
+    tier: 'free',
+  },
+  'glm-4.7': {
+    label: 'GLM 4.7',
+    description: 'GLM series general model',
+    speed: 'medium',
+    tier: 'free',
+  },
   'deepseek-reasoner': {
     label: 'DeepSeek Reasoner',
     description: 'Best reasoning for exploit paths',
@@ -27,6 +51,78 @@ const MODEL_META: Record<string, Omit<ModelInfo, 'id'>> = {
     description: 'Fast general analysis',
     speed: 'fast',
     tier: 'standard',
+  },
+  'deepseek-v3.2': {
+    label: 'DeepSeek V3.2',
+    description: 'Latest DeepSeek general model',
+    speed: 'medium',
+    tier: 'standard',
+  },
+  'claude-sonnet-4.5': {
+    label: 'Claude Sonnet 4.5',
+    description: 'Balanced speed & quality',
+    speed: 'medium',
+    tier: 'standard',
+  },
+  'anthropic-max-claude-sonnet-4-5': {
+    label: 'Claude Sonnet 4.5 (Max)',
+    description: 'Extended context Sonnet',
+    speed: 'medium',
+    tier: 'standard',
+  },
+  'anthropic-max-claude-haiku-4-5': {
+    label: 'Claude Haiku 4.5 (Max)',
+    description: 'Fast and lightweight Claude',
+    speed: 'fast',
+    tier: 'standard',
+  },
+  'gemini-3-flash': {
+    label: 'Gemini 3 Flash',
+    description: 'Google fast model',
+    speed: 'fast',
+    tier: 'standard',
+  },
+  'gemini-3-pro': {
+    label: 'Gemini 3 Pro',
+    description: 'Google flagship model',
+    speed: 'medium',
+    tier: 'standard',
+  },
+  'gemini-2.5-flash-image': {
+    label: 'Gemini 2.5 Flash Image',
+    description: 'Multimodal with image support',
+    speed: 'fast',
+    tier: 'standard',
+  },
+  'perplexity/sonar': {
+    label: 'Perplexity Sonar',
+    description: 'Search-augmented analysis',
+    speed: 'medium',
+    tier: 'standard',
+  },
+  'perplexity/sonar-deep-research': {
+    label: 'Perplexity Sonar Deep Research',
+    description: 'Deep research with web search',
+    speed: 'slow',
+    tier: 'standard',
+  },
+  'grok-4-1-fast-reasoning': {
+    label: 'Grok 4.1 Fast Reasoning',
+    description: 'xAI reasoning model, fast',
+    speed: 'fast',
+    tier: 'standard',
+  },
+  'grok-4-1-fast-non-reasoning': {
+    label: 'Grok 4.1 Fast',
+    description: 'xAI fast model without reasoning',
+    speed: 'fast',
+    tier: 'standard',
+  },
+  'gpt-5.2': {
+    label: 'GPT-5.2',
+    description: 'OpenAI base model',
+    speed: 'medium',
+    tier: 'premium',
   },
   'gpt-5.2-pro': {
     label: 'GPT-5.2 Pro',
@@ -41,22 +137,16 @@ const MODEL_META: Record<string, Omit<ModelInfo, 'id'>> = {
     tier: 'premium',
   },
   'anthropic-max-claude-opus-4-5': {
-    label: 'Claude Opus 4.5',
+    label: 'Claude Opus 4.5 (Max)',
     description: 'Best quality, comprehensive audits',
     speed: 'slow',
     tier: 'premium',
   },
-  'anthropic-max-claude-sonnet-4-5': {
-    label: 'Claude Sonnet 4.5',
-    description: 'Balanced speed & quality',
-    speed: 'medium',
-    tier: 'standard',
-  },
-  'claude-sonnet-4.5': {
-    label: 'Claude Sonnet 4.5',
-    description: 'Balanced speed & quality',
-    speed: 'medium',
-    tier: 'standard',
+  'anthropic-max-claude-opus-4-6': {
+    label: 'Claude Opus 4.6 (Max)',
+    description: 'Latest Opus, highest quality',
+    speed: 'slow',
+    tier: 'premium',
   },
 };
 

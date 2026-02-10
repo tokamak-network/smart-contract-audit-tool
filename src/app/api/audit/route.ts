@@ -23,8 +23,8 @@ type AIProvider = 'litellm' | 'anthropic' | 'openai';
 type AuditDepth = 'quick' | 'deep';
 
 const MAX_TOKENS: Record<AuditDepth, number> = {
-  quick: 20000,  // Qwen3 is FREE - same capacity as Deep
-  deep: 20000,   // ~2-3 minutes, comprehensive analysis
+  quick: 10000,
+  deep: 10000,
 };
 
 // Model selection: Quick mode uses Qwen3 (fast + FREE)
